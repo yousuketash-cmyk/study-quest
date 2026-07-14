@@ -272,6 +272,8 @@
 
   .footnote{color:#fff; opacity:.6; text-align:center; font-size:12px; margin-top:20px;}
   .reset{color:#fff; opacity:.5; text-align:center; font-size:11px; margin-top:8px; text-decoration:underline; cursor:pointer;}
+  .nameinput{width:100%; font-size:20px; padding:12px; border:2px solid #cbd5e1; border-radius:12px; text-align:center; font-family:inherit; box-sizing:border-box; margin-bottom:10px;}
+  .namehint{color:#ef4444; font-size:12px; font-weight:800; text-align:center; min-height:16px; margin-bottom:6px;}
 </style>
 </head>
 <body>
@@ -288,6 +290,24 @@
       </div>
     </div>
   </div>
+
+  <!-- だれが あそぶ？（きょうだいで きろくを わける） -->
+  <section class="screen" id="scPlayers">
+    <h1>スタディクエスト</h1>
+    <p class="subtitle">だれが あそぶ？</p>
+    <div class="card" id="playerList"></div>
+  </section>
+
+  <!-- あたらしい プレイヤーの なまえ -->
+  <section class="screen" id="scNewPlayer">
+    <div style="display:flex; justify-content:flex-start;"><button class="backbtn" onclick="backToPlayers()">← もどる</button></div>
+    <div class="sectitle">なまえを おしえてね</div>
+    <div class="card">
+      <input class="nameinput" id="playerNameInput" maxlength="10" placeholder="れい：たろう" autocomplete="off">
+      <div class="namehint" id="playerNameHint"></div>
+      <button class="btn adventure" onclick="createPlayer()"><span class="menu-emoji">🎒</span>これで はじめる！</button>
+    </div>
+  </section>
 
   <!-- さいしょの あいぼうえらび -->
   <section class="screen" id="scStarter">
@@ -317,6 +337,7 @@
     </div>
     <div class="card" id="missionCard"></div>
     <div class="footnote">あつめた なかま：<span id="homeDex">0</span> / <span id="homeDexAll">0</span> ひき ／ といた もんだい：<span id="totalCount">0</span>もん</div>
+    <div class="reset" onclick="backToPlayers()">👤 <span id="homePlayerName"></span>で あそんでいるよ（こうたいは ここ）</div>
     <div class="reset" onclick="openReport()">📊 おうちの人へ（きろく・せってい）</div>
   </section>
 
@@ -630,13 +651,106 @@ const ENEMIES=[
 ];
 const BOSS={e:"🐲",n:"まとめキング"};
 
+/* ============ プレイヤー（きょうだいで きろくを わける） ============ */
+const PKEY="studyquest_players";
+function keyFor(id){ return "studyquest_v2_p"+id; }
+function loadPlayers(){
+  let p=null;
+  try{ p=JSON.parse(localStorage.getItem(PKEY)); }catch(e){}
+  if(!p || !Array.isArray(p.list) || typeof p.next!=="number"){
+    p={list:[], next:1};
+    /* プレイヤーわけの まえの データが あれば、さいしょの プレイヤーとして そのまま ひきつぐ */
+    const old=localStorage.getItem("studyquest_v2");
+    if(old){
+      localStorage.setItem(keyFor(1), old);
+      localStorage.removeItem("studyquest_v2");
+      p.list.push({id:1, name:"ぼうけんしゃ"});
+      p.next=2;
+    }
+    localStorage.setItem(PKEY, JSON.stringify(p));
+  }
+  return p;
+}
+let PLAYERS=loadPlayers();
+let PID=null;
+function savePlayers(){ localStorage.setItem(PKEY, JSON.stringify(PLAYERS)); }
+function currentPlayer(){ return PLAYERS.list.find(pl=>pl.id===PID)||null; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+/* えらぶ画面用：そのプレイヤーの レベルと あいぼうの すがたを のぞき見する */
+function playerPeek(id){
+  let d=null;
+  try{ d=JSON.parse(localStorage.getItem(keyFor(id))); }catch(e){}
+  if(!d || !d.lv || !d.course) return {emoji:"🎒", sub:"はじめて あそぶ"};
+  const stages=(COURSES[d.course]||COURSES.dragon).stages;
+  let s=stages[0]; for(const st of stages){ if(d.lv>=st.lv) s=st; }
+  return {emoji:s.emoji, sub:"Lv."+d.lv+"　なかま "+Object.values(d.collected||{}).reduce((n,a)=>n+a.length,0)+"ひき"};
+}
+function renderPlayers(){
+  const list=document.getElementById("playerList"); list.innerHTML="";
+  PLAYERS.list.forEach(pl=>{
+    const pk=playerPeek(pl.id);
+    const b=document.createElement("button");
+    b.className="rangebtn";
+    b.innerHTML=`<div style="text-align:left;"><div class="rname">${pk.emoji} ${escapeHtml(pl.name)}</div>
+      <div class="rsub">${pk.sub}</div></div><div class="go">▶</div>`;
+    b.onclick=()=>startAs(pl.id);
+    list.appendChild(b);
+  });
+  if(PLAYERS.list.length<6){
+    const b=document.createElement("button");
+    b.className="rangebtn";
+    b.innerHTML=`<div style="text-align:left;"><div class="rname">＋ あたらしく はじめる</div>
+      <div class="rsub">じぶんの きろくで あそべるよ</div></div><div class="go">▶</div>`;
+    b.onclick=()=>openNewPlayer();
+    list.appendChild(b);
+  }
+}
+function openNewPlayer(){
+  document.getElementById("playerNameInput").value="";
+  document.getElementById("playerNameHint").textContent="";
+  show("scNewPlayer");
+  setTimeout(()=>document.getElementById("playerNameInput").focus(),80);
+}
+function createPlayer(){
+  const name=document.getElementById("playerNameInput").value.trim().slice(0,10);
+  if(!name){ document.getElementById("playerNameHint").textContent="なまえを いれてね"; return; }
+  const id=PLAYERS.next++;
+  PLAYERS.list.push({id:id, name:name});
+  savePlayers();
+  startAs(id);
+}
+function startAs(id){
+  PID=id; KEY=keyFor(id);
+  D=loadData();
+  renderHeader(); renderHome();
+  if(!D.course){ renderStarter(); show("scStarter"); }
+  else { goHome(); checkLoginBonus(); }
+}
+function backToPlayers(){
+  if(D) saveData();
+  renderPlayers(); show("scPlayers");
+}
+function renamePlayer(id){
+  const pl=PLAYERS.list.find(p=>p.id===id); if(!pl) return;
+  const n=prompt("あたらしい なまえ（10文字まで）", pl.name);
+  if(n && n.trim()){ pl.name=n.trim().slice(0,10); savePlayers(); openReport(); }
+}
+function deletePlayer(id){
+  const pl=PLAYERS.list.find(p=>p.id===id); if(!pl) return;
+  if(!confirm("「"+pl.name+"」の データを ぜんぶ けす？\n（レベル・なかま・記録が きえて、もとに もどせません）")) return;
+  localStorage.removeItem(keyFor(id));
+  PLAYERS.list=PLAYERS.list.filter(p=>p.id!==id);
+  savePlayers();
+  if(PID===id){ location.reload(); } else { openReport(); }
+}
+
 /* ============ セーブデータ ============ */
-const KEY="studyquest_v2";
+let KEY=null;   /* startAs() で「いま あそんでいる プレイヤー」の キーが 入る */
 function loadData(){
   let d={};
   try{ d=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){}
-  // v1からの引き継ぎ（レベルだけ）
-  if(!d.lv){ try{ const old=JSON.parse(localStorage.getItem("studyquest_v1")); if(old){ d.lv=old.lv; d.xp=old.xp; d.total=old.total; } }catch(e){} }
+  // v1からの引き継ぎ（レベルだけ・さいしょのプレイヤーのみ）
+  if(!d.lv && PID===1){ try{ const old=JSON.parse(localStorage.getItem("studyquest_v1")); if(old){ d.lv=old.lv; d.xp=old.xp; d.total=old.total; } }catch(e){} }
   d=Object.assign({lv:1, xp:0, total:0, collected:{}, log:[], sessions:[], lastLogin:"", loginStreak:0, loginDays:0, bestStreak:0, missions:null, review:null, sound:true,
     gems:0, skins:[], mates:[], equip:{head:null, mate:null}, gachaPity:0, pace:"std", checks:[], course:null, courses:[], kmode:"", dayWins:null}, d);
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
@@ -674,8 +788,8 @@ function endSession(result){
   if(D.sessions.length>300) D.sessions=D.sessions.slice(-300);
   saveData();
 }
-function saveData(){ localStorage.setItem(KEY, JSON.stringify(D)); }
-let D=loadData();
+function saveData(){ if(KEY) localStorage.setItem(KEY, JSON.stringify(D)); }
+let D=null;   /* startAs() で えらんだ プレイヤーの データが 入る */
 function collectedList(subId){ return D.collected[subId]||[]; }
 function isCollected(subId,monId){ return collectedList(subId).includes(monId); }
 function collectedCount(){ let n=0; for(const s of SUBJECTS){ n+=collectedList(s.id).length; } return n; }
@@ -703,6 +817,8 @@ function renderHome(){
   document.getElementById("homeDexAll").textContent=totalMonsters();
   document.getElementById("homeHat").textContent=equippedEmoji("head");
   document.getElementById("homeMate").textContent=equippedEmoji("mate");
+  const cp=currentPlayer();
+  document.getElementById("homePlayerName").textContent = cp ? cp.name : "";
   document.getElementById("homeStreak").textContent = (D.loginStreak>=2) ? "🔥 "+D.loginStreak+"日 れんぞくで あそんでいるよ！" : "";
   const evo=winsToNextEvo();
   document.getElementById("homeEvo").textContent = evo ? `✨ ${evo.ns.emoji}「${evo.ns.name}」まで あと ${evo.wins}かい かてば しんか！` : "";
@@ -2167,12 +2283,23 @@ function progressCard(){
 }
 function paceSet(v){ D.pace=v; saveData(); openReport(); }
 
-/* せってい（音・データ全消去。子どもの画面から遠ざけて事故防止） */
+/* せってい（音・プレイヤー管理・データ全消去。子どもの画面から遠ざけて事故防止） */
 function settingsCard(){
   const snd=(D.sound===false)?"🔇 OFF（タップで ON）":"🔊 ON（タップで OFF）";
+  const cp=currentPlayer();
+  const rows=PLAYERS.list.map(pl=>{
+    const me=(pl.id===PID)?"（いま あそんでいる子）":"";
+    return `<div class="stat"><span>👤 ${escapeHtml(pl.name)} ${me}</span>
+      <span class="v" style="font-size:12px;">
+        <span style="cursor:pointer; text-decoration:underline;" onclick="renamePlayer(${pl.id})">名前変更</span>
+        <span style="cursor:pointer; text-decoration:underline; color:#ef4444;" onclick="deletePlayer(${pl.id})">削除</span>
+      </span></div>`;
+  }).join("");
   return `<div class="card"><div class="rep-h">せってい</div>
     <div class="stat"><span>効果音</span><span class="v" style="cursor:pointer;" onclick="toggleSound()">${snd}</span></div>
-    <div class="reset" style="text-align:left; margin-top:10px; opacity:.7;" onclick="hardReset()">データを さいしょから やりなおす（レベル・なかま・記録の全消去）</div>
+    <div style="font-size:12px; font-weight:800; color:#829ab1; margin:12px 0 2px;">プレイヤー（記録は一人ずつ別に保存されています）</div>
+    ${rows}
+    <div class="reset" style="text-align:left; margin-top:10px; opacity:.7;" onclick="hardReset()">${cp?escapeHtml(cp.name)+"の ":""}データを さいしょから やりなおす（レベル・なかま・記録の全消去）</div>
   </div>`;
 }
 
@@ -2480,7 +2607,8 @@ function show(id){
 }
 function goHome(){ renderHeader(); renderHome(); show("scHome"); }
 function hardReset(){
-  if(confirm("ほんとうに さいしょから やりなおす？\n（レベル・なかま・けいけんちが きえます）")){
+  const cp=currentPlayer();
+  if(confirm((cp?("「"+cp.name+"」の "):"")+"データを ほんとうに さいしょから やりなおす？\n（レベル・なかま・けいけんちが きえます）")){
     localStorage.removeItem(KEY); location.reload();
   }
 }
@@ -2495,13 +2623,14 @@ document.addEventListener("keydown",e=>{
   }
 });
 
-/* 初期化 */
-renderHeader(); renderHome();
-if(!D.course){
-  renderStarter(); show("scStarter");   /* さいしょの あいぼうえらび（えらぶまで ホームに いかない） */
+/* 初期化：まず「だれが あそぶ？」から（プレイヤーが まだ いなければ なまえ入力へ） */
+if(PLAYERS.list.length===0){
+  openNewPlayer();
 }else{
-  checkLoginBonus();
+  renderPlayers(); show("scPlayers");
 }
+/* なまえ入力は Enter でも けってい できる */
+document.getElementById("playerNameInput").addEventListener("keydown",e=>{ if(e.key==="Enter") createPlayer(); });
 </script>
 </body>
 </html>
