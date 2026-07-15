@@ -95,6 +95,9 @@
   .pacebtn{border:none; border-radius:999px; background:#eef2f7; color:#334155; font-family:inherit;
     font-weight:800; font-size:13px; padding:8px 14px; margin-right:6px; cursor:pointer;}
   .pacebtn.on{background:var(--blue); color:#fff;}
+  .speakbtn{border:none; border-radius:999px; background:#eef2f7; color:#334155; font-family:inherit;
+    font-weight:800; padding:7px 16px; font-size:15px; margin:2px auto 6px; cursor:pointer;}
+  .speakbtn:active{background:var(--blue); color:#fff;}
   .samplebanner{background:#fef3c7; border:2px dashed #f59e0b; color:#92400e; border-radius:14px;
     padding:10px 14px; font-size:13px; font-weight:800; margin-top:14px; text-align:center;}
 
@@ -447,6 +450,7 @@
       <span class="qtag" id="qTag">けいさん</span>
       <div class="qtext" id="qText">1 + 1</div>
       <div class="qhint" id="qHint"></div>
+      <button class="speakbtn" id="btnSpeak" onclick="speakQ()" style="display:none;">🔊 きく</button>
 
       <div id="numInput" style="display:none;">
         <div class="answerbox" id="answerBox"><span class="ph">？</span></div>
@@ -1806,6 +1810,30 @@ function renderChoices(choices){
     cb.appendChild(b);
   });
 }
+/* ===== よみあげ「きく」ボタン =====
+   まだ すらすら読めない子むけ（1年生対応の柱）。ブラウザ標準の音声（無料）を使う。
+   かんじの「よみ」問題は 読むと答えを言ってしまうので 算数だけに出す */
+let SPEAK_TEXT="";
+function mathSpeech(t){
+  return t
+    .replace(/(\d+)\s*\/\s*(\d+)/g,"$2ぶんの$1")   /* 3/5 → 5ぶんの3 */
+    .replace(/×/g," かける ").replace(/÷/g," わる ")
+    .replace(/−/g," ひく ").replace(/[＋+]/g," たす ")   /* ー（のばし棒）は さわらない */
+    .replace(/□/g,"しかく");
+}
+function setSpeak(text){
+  SPEAK_TEXT=text||"";
+  if("speechSynthesis" in window) speechSynthesis.cancel();   /* 前の問題の声を止める */
+  const b=document.getElementById("btnSpeak");
+  if(b) b.style.display=(SPEAK_TEXT && "speechSynthesis" in window)?"inline-block":"none";
+}
+function speakQ(){
+  if(!SPEAK_TEXT || !("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(SPEAK_TEXT);
+  u.lang="ja-JP"; u.rate=0.85;
+  speechSynthesis.speak(u);
+}
 function loadQ(){
   typed=""; locked=false; strokeCount=0; curKanji=null;
   const q = chk ? chk.qs[chk.i] : makeQuestionUnique();
@@ -1827,9 +1855,12 @@ function loadQ(){
     qtext.textContent=isText ? kanjify(q.text) : q.text+" = ？";   /* ならった漢字で出題 */
     if(isText && q.text.length>=14) qtext.style.fontSize="26px"; else qtext.style.fontSize="";
     qhint.textContent="";
+    /* よみあげは かなの原文から（漢字の読みまちがいを ふせぐ） */
+    setSpeak(mathSpeech(isText ? q.text : q.text+" は いくつ？"));
     if(q.ch){ renderChoices(q.choices); }
     else{ numI.style.display="block"; renderAnswerBox(); }
   }else if(q.kind==="read"){
+    setSpeak("");
     tag.style.background="var(--pink)";
     if(q.sent){ tag.textContent="ぶんしょう"; qtext.style.fontSize="24px"; }
     else if(q.cat==="okuri"){ tag.textContent="おくりがな"; qtext.style.fontSize="34px"; }
@@ -1837,6 +1868,7 @@ function loadQ(){
     qtext.textContent=q.text; qhint.textContent=q.hint;
     renderChoices(q.choices);
   }else{
+    setSpeak("");
     qtext.style.fontSize="";
     setupWrite(q);
   }
@@ -3050,6 +3082,7 @@ function openStatus(){
 
 /* ============ 画面切りかえ ============ */
 function show(id){
+  if("speechSynthesis" in window) speechSynthesis.cancel();   /* 画面がかわったら よみあげを止める */
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   const el=document.getElementById(id);
   el.classList.add("active");
