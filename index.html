@@ -297,6 +297,8 @@
     <h1>スタディクエスト</h1>
     <p class="subtitle">だれが あそぶ？</p>
     <div class="card" id="playerList"></div>
+    <div class="reset" onclick="document.getElementById('importFile').click()">📦 ひきつぎファイルで ひっこしてくる</div>
+    <input type="file" id="importFile" accept=".json,application/json,text/plain" style="display:none">
   </section>
 
   <!-- あたらしい プレイヤーの なまえ -->
@@ -730,6 +732,52 @@ function startAs(id){
 function backToPlayers(){
   if(D) saveData();
   renderPlayers(); show("scPlayers");
+}
+/* ひきつぎファイル：URL版⇔ファイル版・べつの端末への ひっこし用 */
+function buildExportData(){
+  if(PID && D) saveData();   /* あそび中の最新状態も 保存してから */
+  const data={kind:"studyquest-hikitsugi", v:1, players:{list:PLAYERS.list, next:PLAYERS.next}, saves:{}};
+  PLAYERS.list.forEach(pl=>{
+    try{ const s=JSON.parse(localStorage.getItem(keyFor(pl.id))); if(s) data.saves[pl.id]=s; }catch(e){}
+  });
+  return data;
+}
+function exportSave(){
+  const blob=new Blob([JSON.stringify(buildExportData())],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="スタディクエストひきつぎ_"+ymd(new Date())+".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+function importSaveData(data){
+  if(!data || data.kind!=="studyquest-hikitsugi" || !data.players || !Array.isArray(data.players.list)) return -1;
+  let added=0;
+  data.players.list.forEach(pl=>{
+    const save=data.saves && data.saves[pl.id];
+    if(!save) return;
+    let name=String(pl.name||"なぞの子").slice(0,10);
+    /* おなじ名前が すでに いたら「（ひっこし）」を つけて 見分けられるように */
+    if(PLAYERS.list.some(p=>p.name===name)) name=name.slice(0,5)+"（ひっこし）";
+    const nid=PLAYERS.next++;
+    PLAYERS.list.push({id:nid, name:name});
+    localStorage.setItem(keyFor(nid), JSON.stringify(save));
+    added++;
+  });
+  if(added) savePlayers();
+  return added;
+}
+function importSaveFile(file){
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let data=null;
+    try{ data=JSON.parse(rd.result); }catch(e){}
+    const n=importSaveData(data);
+    if(n<0){ alert("ひきつぎファイルが よめませんでした。\nスタディクエストで ほぞんした ファイルか たしかめてね。"); return; }
+    alert(n+"人ぶんの 記録が ひっこしてきました！");
+    renderPlayers(); show("scPlayers");
+  };
+  rd.readAsText(file);
 }
 function renamePlayer(id){
   const pl=PLAYERS.list.find(p=>p.id===id); if(!pl) return;
@@ -2305,6 +2353,7 @@ function settingsCard(){
     <div class="stat"><span>効果音</span><span class="v" style="cursor:pointer;" onclick="toggleSound()">${snd}</span></div>
     <div style="font-size:12px; font-weight:800; color:#829ab1; margin:12px 0 2px;">プレイヤー（記録は一人ずつ別に保存されています）</div>
     ${rows}
+    <div class="reset" style="text-align:left; margin-top:10px; opacity:.7;" onclick="exportSave()">📦 全員の記録を ひきつぎファイルに保存（別の端末・別の開き方への引っこし用）</div>
     <div class="reset" style="text-align:left; margin-top:10px; opacity:.7;" onclick="hardReset()">${cp?escapeHtml(cp.name)+"の ":""}データを さいしょから やりなおす（レベル・なかま・記録の全消去）</div>
   </div>`;
 }
@@ -2637,6 +2686,11 @@ if(PLAYERS.list.length===0){
 }
 /* なまえ入力は Enter でも けってい できる */
 document.getElementById("playerNameInput").addEventListener("keydown",e=>{ if(e.key==="Enter") createPlayer(); });
+/* ひきつぎファイルの よみこみ */
+document.getElementById("importFile").addEventListener("change",e=>{
+  if(e.target.files && e.target.files[0]) importSaveFile(e.target.files[0]);
+  e.target.value="";
+});
 </script>
 </body>
 </html>
