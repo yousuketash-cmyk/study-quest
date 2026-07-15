@@ -1028,11 +1028,10 @@ function winsToNextEvo(){
 /* ============ 教科えらび ============ */
 function quickStart(s){
   /* 教科タップで「いま ならって いる ところ」から すぐ スタート。
-     こくごは 前回の とき方を おぼえていて 2回目からは えらばず 即スタート */
+     こくごは 3つの とき方が ランダムに まざる（なぞりがきだけは とき方えらびから） */
   const r=s.ranges.find(x=>x.id==="now")||s.ranges[0];
   if(s.id==="math") startBattle(s, r, "num");
-  else if(D.kmode) startBattle(s, r, D.kmode);
-  else openModePicker(s, r);
+  else startBattle(s, r, "kmix");
 }
 function renderSubjects(){
   const g=document.getElementById("subGrid"); g.innerHTML="";
@@ -1109,10 +1108,11 @@ function openModePicker(sub, range){
      文なしで「けん」だけ見せられても どの漢字か わからない（本人フィードバック）。
      例文がない範囲への内部フォールバックとしてだけ残っている */
   const modes=[
+    {m:"kmix",  emo:"🎲", n:"いろいろ ミックス（おすすめ）", s:"よみ・おくりがな・かきとりが ランダムに 出る"},
     {m:"bunread",  emo:"📖", n:"ぶんしょうで よみ", s:"文の 中の かんじを よむ"},
     {m:"okuri", emo:"🔡", n:"おくりがな",     s:"「短い？短かい？」ただしいのを えらぶ"},
-    {m:"trace", emo:"✍️", n:"なぞりがき",     s:"うすい かんじを なぞる（じどう はんてい）"},
     {m:"bunwrite", emo:"✏️", n:"ぶんしょうで かきとり", s:"文の （　）の かんじを かく"},
+    {m:"trace", emo:"✍️", n:"なぞりがき",     s:"うすい かんじを なぞる（じどう はんてい）"},
   ];
   modes.forEach(x=>{
     const b=document.createElement("button"); b.className="rangebtn";
@@ -1615,10 +1615,13 @@ function makeKanjiWrite(rangeId, mode){
 }
 function makeQuestion(){
   if(curSub.id==="math") return makeMath(curRange.id);
-  if(curMode==="trace" || curMode==="write") return makeKanjiWrite(curRange.id, curMode);
-  if(curMode==="bunread") return makeBunRead(curRange.id);
-  if(curMode==="okuri") return makeOkuri(curRange.id);
-  if(curMode==="bunwrite") return makeBunWrite(curRange.id);
+  let mode=curMode;
+  /* ミックス：3つの とき方から ランダム（なぞりがきは まぜない） */
+  if(mode==="kmix") mode=pick(["bunread","okuri","bunwrite"]);
+  if(mode==="trace" || mode==="write") return makeKanjiWrite(curRange.id, mode);
+  if(mode==="bunread") return makeBunRead(curRange.id);
+  if(mode==="okuri") return makeOkuri(curRange.id);
+  if(mode==="bunwrite") return makeBunWrite(curRange.id);
   return makeKanji(curRange.id);
 }
 /* 1回のバトル中は おなじ問題を出さない */
@@ -1643,7 +1646,6 @@ function startBattle(sub, range, mode){
   document.getElementById("enemyZone").style.display="";
   curSub=sub; curRange=range; curMode=mode||"num";
   asked=new Set();   /* このバトルで出した問題（重複防止） */
-  if(sub.id==="kanji" && curMode!=="num"){ D.kmode=curMode; saveData(); }   /* とき方を おぼえる */
   const isBoss=!!range.boss;
   const base = isBoss ? BOSS : ENEMIES[Math.floor(Math.random()*ENEMIES.length)];
   const elv = isBoss ? D.lv+2 : Math.max(1, D.lv+rnd(-1,1));
