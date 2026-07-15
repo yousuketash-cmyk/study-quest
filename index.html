@@ -1030,7 +1030,7 @@ function loadData(){
 function normalizeSave(d){
   d=Object.assign({lv:1, xp:0, total:0, collected:{}, log:[], sessions:[], lastLogin:"", loginStreak:0, loginDays:0, bestStreak:0, missions:null, review:null, sound:true,
     gems:0, skins:[], mates:[], equip:{head:null, mate:null}, gachaPity:0, pace:"std", checks:[], course:null, courses:[], kmode:"", dayWins:null, grade:3,
-    trophies:0, trophyIdx:0, trophyOver:0, titles:[]}, d);
+    trophies:0, trophyIdx:0, trophyOver:0, titles:[], uprog:{}}, d);
   if(typeof d.trophies!=="number") d.trophies=0;
   if(typeof d.trophyIdx!=="number") d.trophyIdx=0;
   if(typeof d.trophyOver!=="number") d.trophyOver=0;
@@ -1040,6 +1040,7 @@ function normalizeSave(d){
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
   if(!["fast","std","slow"].includes(d.pace)) d.pace="std";
+  if(!d.uprog || typeof d.uprog!=="object" || Array.isArray(d.uprog)) d.uprog={};
   if(!Array.isArray(d.checks)) d.checks=[];
   if(typeof d.kmode!=="string") d.kmode="";
   /* 廃止した とき方（よみ4たく・かきとり）が おぼえられていたら 文章版に 置きかえ */
@@ -1180,12 +1181,12 @@ function rangeInfo(subId, r){
   const qu=quizUnits(subId);
   if(qu!==null || subId==="science" || subId==="english" || subId==="social"){
     if(!qu) return {lock:true, sub:"じゅんびちゅう"};
-    const taught=qu.filter(unitTaught);
+    const taught=qu.filter(u=>unitTaughtQ(qu,u));
     if(r.id==="now"){ const p=taught.slice(-2); return {lock:false, sub:p.length?p.map(u=>u.name).join("・"):qu[0].name}; }
     if(r.id==="all"){ return {lock:false, sub:"ならった たんげん "+taught.length+"こ ミックス（ボス）"}; }
     const t=+r.id[1];
     const total=qu.filter(u=>u.term===t).length;
-    const done=qu.filter(u=>u.term===t&&unitTaught(u)).length;
+    const done=qu.filter(u=>u.term===t&&unitTaughtQ(qu,u)).length;
     if(!done) return {lock:true, sub:"🔜 まだ がっこうで ならって いないよ"};
     return {lock:false, sub:"ならった たんげん "+done+"/"+total};
   }
@@ -1294,6 +1295,14 @@ function fyDate(m, day){
 }
 function monthTaught(m){ return fyDate(m,10)<=paceDate(); }
 function unitTaught(u){ return fyDate(u.s[0], u.s[1])<=paceDate(); }
+/* しゃかい・りか・えいご は 親が「ここまで ならった」を手なおしできる（D.uprog）。
+   手なおしが あれば カレンダーより優先。学校のすすみが 早い/おそい どちらにも対応 */
+function unitTaughtQ(units, u){
+  const subId = (units===SOC_UNITS)?"social" : (units===SCI_UNITS)?"science" : (units===ENG_UNITS)?"english" : null;
+  const ov = (subId && D && D.uprog) ? D.uprog[subId] : null;
+  if(ov){ const i=units.findIndex(x=>x.id===ov); if(i>=0) return units.indexOf(u)<=i; }
+  return unitTaught(u);
+}
 
 function q(text,ans,cat){ return {kind:"math", text:text, answer:ans, cat:cat}; }
 function qc(text,answer,choices,cat){ return {kind:"math", ch:true, text:text, answer:answer, choices:shuffle(choices.slice()), cat:cat}; }
@@ -3138,7 +3147,7 @@ function quizUnits(subId){
 }
 const QUIZ_TAG={social:{n:"しゃかい", bg:"#d97706"}, science:{n:"りか", bg:"#0d9488"}, english:{n:"えいご", bg:"#7c3aed"}};
 function knowledgePool(units, rangeId){
-  const taught=units.filter(u=>unitTaught(u));
+  const taught=units.filter(u=>unitTaughtQ(units,u));
   let pool;
   if(rangeId==="now") pool=taught.slice(-2);
   else if(rangeId==="t1"||rangeId==="t2"||rangeId==="t3"){ const t=+rangeId[1]; pool=taught.filter(u=>u.term===t); }
@@ -4162,7 +4171,8 @@ function startCheck(subId){
     });
   }else if(subId==="social" || subId==="science"){
     const meta=QUIZ_TAG[subId];
-    quizUnits(subId).filter(u=>unitTaught(u)).forEach(u=>{
+    const chkU=quizUnits(subId);
+    chkU.filter(u=>unitTaughtQ(chkU,u)).forEach(u=>{
       shuffle(u.qs.slice()).slice(0,2).forEach(qa=>{
         qs.push({kind:"read", quiz:true, qk:"q:"+qa.t, qtag:meta.n, qbg:meta.bg, text:qa.t, hint:"", answer:qa.a,
           choices:shuffle([qa.a].concat(qa.w)), cat:u.cat, unit:u.id, ulabel:u.name});
@@ -4170,7 +4180,7 @@ function startCheck(subId){
     });
   }else if(subId==="english"){
     const meta=QUIZ_TAG.english;
-    ENG_UNITS.filter(u=>unitTaught(u)).forEach(u=>{
+    ENG_UNITS.filter(u=>unitTaughtQ(ENG_UNITS,u)).forEach(u=>{
       const items=shuffle(u.qs.slice()).slice(0,2);
       items.forEach(qa=>{
         const wrongs=shuffle(u.qs.filter(x=>x!==qa).map(x=>x.ja)).slice(0,3);
@@ -4402,10 +4412,32 @@ function progressCard(){
       <div style="font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">学校のすすみ具合の補正（うちの学校は…）</div>
       ${paceBtn("fast","はやめ")}${paceBtn("std","ふつう")}${paceBtn("slow","ゆっくり")}
     </div>
+    ${uprogRows()}
     <div class="rep-note" style="margin-top:8px;">今日の日付から標準ペースで自動判定します（長期休みは進みません）。算数の時期は啓林館の年間指導計画準拠、漢字の月わりは標準の目安です。出題・チェックは「ならった範囲」だけから出ます。</div>
   </div>`;
 }
 function paceSet(v){ D.pace=v; KNOWN_KANJI=null; saveData(); openReport(); }
+/* りか・しゃかい・えいご「ここまで ならった」の手なおし（単元単位・プレイヤーごと） */
+function uprogRows(){
+  const subs=[["social","しゃかい"],["science","りか"],["english","えいご"]];
+  const rows=subs.map(([id,label])=>{
+    const units=quizUnits(id); if(!units) return "";
+    const auto=units.filter(u=>unitTaught(u));
+    const autoName=auto.length?auto[auto.length-1].name:"まだ はじまって いない";
+    const cur=(D.uprog&&D.uprog[id])||"";
+    const opts=[`<option value=""${cur===""?" selected":""}>じどう（いま「${autoName}」まで）</option>`]
+      .concat(units.map(u=>`<option value="${u.id}"${cur===u.id?" selected":""}>「${u.name}」まで</option>`)).join("");
+    return `<div class="stat" style="border-bottom:none; padding:7px 4px;"><span>${label}</span>
+      <select onchange="uprogSet('${id}',this.value)" style="font-family:inherit; font-weight:700; font-size:12px; max-width:62%; padding:5px 6px; border-radius:8px; border:2px solid #e2e8f0; background:#fff; color:#334155;">${opts}</select></div>`;
+  }).join("");
+  if(!rows.trim()) return "";
+  return `<div style="margin-top:12px;">
+    <div style="font-size:13px; font-weight:800; color:#334155;">ならった単元の手なおし（りか・しゃかい・えいご）</div>
+    ${rows}
+    <div class="rep-note">学校のすすみがカレンダーと合わないときに、教科ごとに「ここまで ならった」を指定できます。「じどう」に戻すとカレンダー判定になります。</div>
+  </div>`;
+}
+function uprogSet(id,v){ if(!D.uprog) D.uprog={}; if(v) D.uprog[id]=v; else delete D.uprog[id]; saveData(); openReport(); }
 
 /* せってい（音・プレイヤー管理・データ全消去。子どもの画面から遠ざけて事故防止） */
 function settingsCard(){
