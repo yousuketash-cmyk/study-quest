@@ -1142,10 +1142,13 @@ function renderSubjects(){
   SUBJECTS.forEach(s=>{
     const rdy=subjectReady(s);
     const got=collectedList(s.id).length, all=s.monsters.length;
+    /* 教科の「ちょうし」バッジ（🔥=好調で歯ごたえアップ中・🌱=じっくりモード） */
+    const form=rdy?subjectForm(s.id):"normal";
+    const formBadge = form==="hot" ? " 🔥" : form==="cool" ? " 🌱" : "";
     const d=document.createElement("div");
     d.className="subcard"+(rdy?"":" locked");
     d.style.background=s.color;
-    d.innerHTML=`<div class="semoji">${s.emoji}</div><div class="sname">${s.name}</div>
+    d.innerHTML=`<div class="semoji">${s.emoji}</div><div class="sname">${s.name}${formBadge}</div>
       <div class="sprog">なかま ${got}/${all}</div>
       ${rdy?'<div class="rangechip">ほかの はんい ▾</div>':""}
       ${rdy?"":'<span class="lockbadge">じゅんびちゅう</span>'}`;
@@ -1473,18 +1476,34 @@ function mathPool(rangeId){
   if(!pool.length) pool=[MATH_UNITS[0]];
   return pool;
 }
+/* ===== 教科ごとの「ちょうし」判定 =====
+   直近20問の正解率で 3段階。得意な教科ほど 歯ごたえが出る（苦手な教科は やさしいまま）。
+   85%以上=🔥好調 ／ 60%未満=🌱じっくり ／ あいだ=ふつう。10問たまるまでは ふつう */
+function subjectForm(subId){
+  const recent=(D.log||[]).filter(l=>l.sub===subId).slice(-20);
+  if(recent.length<10) return "normal";
+  const acc=recent.reduce((s,l)=>s+l.ok,0)/recent.length;
+  if(acc>=0.85) return "hot";
+  if(acc<0.6) return "cool";
+  return "normal";
+}
 function makeMath(rangeId){
   const rp=(D.review&&D.review.math)||[];
   if(rp.length && Math.random()<0.35){
     const it=rp[Math.floor(Math.random()*rp.length)];
     return {kind:"math", text:it.text, answer:it.answer, cat:it.cat, review:true};
   }
+  const form=subjectForm("math");   /* 算数の「ちょうし」 */
+  /* 🔥好調のときは「いま」の範囲にも 復習（ならったところ全部）を まぜる */
+  if(rangeId==="now" && form==="hot" && Math.random()<0.3) rangeId="all";
   let pool=mathPool(rangeId);
   /* ボス（ぜんぶミックス）は 半分を「いま ならって いる ところ」から出す */
   if(rangeId==="all" && Math.random()<0.5){ const recent=mathPool("now"); if(recent.length) pool=recent; }
   const u=pool[Math.floor(Math.random()*pool.length)];
-  /* 文章もんだい：とっくん範囲なら 100%・ふつうのバトルにも 30% まぜる */
-  const useBun = u.bun && (rangeId==="bun" || Math.random()<0.3);
+  /* 文章もんだい：とっくん範囲なら 100%。ふつうのバトルは「ちょうし」で変わる
+     （🔥好調=50%・ふつう=30%・🌱じっくり=15%） */
+  const bunRate = form==="hot" ? 0.5 : form==="cool" ? 0.15 : 0.3;
+  const useBun = u.bun && (rangeId==="bun" || Math.random()<bunRate);
   const qq = useBun ? u.bun() : u.gen();
   qq.unit=u.id; qq.ulabel=u.name;
   return qq;
@@ -3135,6 +3154,8 @@ function pickQuizUnit(units, rangeId){
 }
 function makeKnowledge(subId, rangeId){
   const units=quizUnits(subId), meta=QUIZ_TAG[subId];
+  /* 🔥好調のときは「いま」にも 復習を まぜる */
+  if(rangeId==="now" && subjectForm(subId)==="hot" && Math.random()<0.3) rangeId="all";
   const u=pickQuizUnit(units, rangeId);
   const qa=u.qs[Math.floor(Math.random()*u.qs.length)];
   return {kind:"read", quiz:true, qk:"q:"+qa.t, qtag:meta.n, qbg:meta.bg, text:qa.t, hint:"", answer:qa.a,
@@ -3178,8 +3199,14 @@ function makeQuestion(){
   if(MOJI && !taughtKanjiMonths().length) return makeMoji();
   /* 1年生のミックスは 半分 もじあつめ */
   if(MOJI && mode==="kmix" && Math.random()<0.5) return makeMoji();
-  /* ミックス：3つの とき方から ランダム（なぞりがきは まぜない） */
-  if(mode==="kmix") mode=pick(["bunread","okuri","bunwrite"]);
+  /* ミックス：3つの とき方から ランダム（なぞりがきは まぜない）。
+     こくごの「ちょうし」が🔥なら 書く系多め・🌱なら よみ多め */
+  if(mode==="kmix"){
+    const form=subjectForm("kanji");
+    if(form==="hot") mode=pick(["bunread","okuri","okuri","bunwrite","bunwrite"]);
+    else if(form==="cool") mode=pick(["bunread","bunread","bunread","okuri","bunwrite"]);
+    else mode=pick(["bunread","okuri","bunwrite"]);
+  }
   if(mode==="trace" || mode==="write") return makeKanjiWrite(curRange.id, mode);
   if(mode==="bunread") return makeBunRead(curRange.id);
   if(mode==="okuri") return makeOkuri(curRange.id);
@@ -3210,10 +3237,16 @@ function startBattle(sub, range, mode){
   asked=new Set();   /* このバトルで出した問題（重複防止） */
   const isBoss=!!range.boss;
   const base = isBoss ? BOSS : ENEMIES[Math.floor(Math.random()*ENEMIES.length)];
-  const elv = isBoss ? D.lv+2 : Math.max(1, D.lv+rnd(-1,1));
+  /* ★つよてき：Lv.5から出現。教科の「ちょうし」で出やすさが変わる
+     （🔥好調=35%・ふつう=20%・🌱じっくり=出ない）。レベル+3・HP1.25倍、倒すと ごほうび増量 */
+  const form=subjectForm(sub.id);
+  const eliteRate = form==="hot" ? 0.35 : form==="cool" ? 0 : 0.2;
+  const isElite = !isBoss && D.lv>=5 && Math.random()<eliteRate;
+  const elv = isBoss ? D.lv+2 : isElite ? D.lv+3 : Math.max(1, D.lv+rnd(-1,1));
   let hpMax = isBoss ? 150+elv*12 : 90+elv*8;
+  if(isElite) hpMax=Math.round(hpMax*1.25);
   if(D.grade===1) hpMax=Math.round(hpMax*0.7);   /* 1年生：集中がつづく長さに合わせて 1バトル短め */
-  enemy={e:base.e, n:base.n, lv:elv, hp:hpMax, hpMax:hpMax};
+  enemy={e:base.e, n:(isElite?"★つよい":"")+base.n, lv:elv, hp:hpMax, hpMax:hpMax, elite:isElite};
   hearts=3; streak=0; maxStreak=0; gainedXp=0; correctCount=0; battleOver=false;
   sessActive=true; sessStart=Date.now(); sessCount=0; sessSub=sub.id;
   document.getElementById("enemyName").textContent="Lv."+enemy.lv+" "+enemy.n;
@@ -3353,7 +3386,8 @@ function judge(ok, ans){
     addGems(1);
     updateCombo();
     const crit = streak>=3;
-    let dmg = 18 + streak*4;
+    /* 攻撃力はレベルで伸びる（敵のHPも伸びるので バトルの長さは ほぼ一定。数字だけ派手になる） */
+    let dmg = 17 + D.lv + streak*4;
     if(crit) dmg*=2;
     if(D.course==="dragon") dmg=Math.round(dmg*1.1);   /* ドラゴンコース：こうげき +10% */
     enemy.hp -= dmg;
@@ -4000,9 +4034,10 @@ function winBattle(){
   const today=ymd(new Date());
   if(!D.dayWins || D.dayWins.d!==today) D.dayWins={d:today, n:0, shown:false};
   D.dayWins.n++;
-  const bonus=(10+enemy.lv*3)*(curRange.boss?2:1);
+  let bonus=(10+enemy.lv*3)*(curRange.boss?2:1);
+  if(enemy.elite) bonus=Math.round(bonus*1.5);   /* ★つよてきは ごほうび増量 */
   gainedXp+=bonus; addXp(bonus);
-  const gwin=addGems(curRange.boss?12:6);
+  const gwin=addGems(curRange.boss?12:(enemy.elite?10:6));
   /* トロフィーロード（全学年・ボスは2こ） */
   D.trophies+=(curRange.boss?2:1);
   const trophyMsg=trophyRoadCheck();
@@ -4037,6 +4072,7 @@ function winBattle(){
     rb.innerHTML=`<div class="o-msg">…なかまの けはいが した！<br>かちつづけると なかまが やってくるよ。</div>`;
   }
   let msg="けいけんち +"+gainedXp+" ／ 💎+"+gwin+" ／ さいだいれんぞく "+maxStreak;
+  if(enemy.elite) msg="💪 ★つよてきに かった！ ごほうび アップ！<br>"+msg;
   const tInfo=nextTrophyInfo();
   msg+="<br>🏆 +"+(curRange.boss?2:1)+"（ぜんぶで "+D.trophies+"）　つぎの "+tInfo.label+" まで あと"+tInfo.need+"かい";
   if(trophyMsg) msg+=trophyMsg;
