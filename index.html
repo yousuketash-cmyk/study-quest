@@ -673,8 +673,8 @@ const ENEMIES=[
 const BOSS={e:"🐲",n:"まとめキング"};
 
 /* ============ クラウド保存（Supabase）：どの端末でも同じ記録 ============ */
-const CLOUD_URL="PASTE_SUPABASE_URL_HERE";       /* 例 https://xxxx.supabase.co */
-const CLOUD_KEY="PASTE_SUPABASE_ANON_KEY_HERE";  /* anon public キー（公開してよい種類のキー） */
+const CLOUD_URL="https://vcrsoxekorhgcpicexjl.supabase.co";
+const CLOUD_KEY="sb_publishable_ZcBgiM-YOdHMnSjd3_xY6w_zoS8f6uE";  /* publishable キー（公開してよい種類） */
 function cloudReady(){ return CLOUD_URL.indexOf("http")===0 && CLOUD_KEY.length>40; }
 async function rpc(fn, args){
   const res=await fetch(CLOUD_URL+"/rest/v1/rpc/"+fn, {
