@@ -704,7 +704,13 @@ const SUBJECTS = [
       {id:"k10", emoji:"🦢", name:"すいすいハクチョウ", r:3},
     ]},
   {id:"science", name:"りか", emoji:"🔬", color:"linear-gradient(135deg,#10b981,#059669)", ready:false,
-    ranges:[], monsters:[
+    ranges:[
+      {id:"now", name:"いま ならって いる ところ", sub:""},
+      {id:"t1", name:"1学期",   sub:""},
+      {id:"t2", name:"2学期",   sub:""},
+      {id:"t3", name:"3学期",   sub:""},
+      {id:"all",name:"ならった ところ ぜんぶ", sub:"ミックス（ボス）", boss:true},
+    ], monsters:[
       {id:"s1", emoji:"🐸", name:"じっけんガエル", r:1},
       {id:"s2", emoji:"🦎", name:"はかせトカゲ", r:2},
       {id:"s3", emoji:"🐢", name:"こうらガメ", r:3},
@@ -723,7 +729,13 @@ const SUBJECTS = [
       {id:"c3", emoji:"🐘", name:"ものしりゾウ", r:3},
     ]},
   {id:"english", name:"えいご", emoji:"🔤", color:"linear-gradient(135deg,#8b5cf6,#6d28d9)", ready:false,
-    ranges:[], monsters:[
+    ranges:[
+      {id:"now", name:"いま ならって いる ところ", sub:""},
+      {id:"t1", name:"1学期",   sub:""},
+      {id:"t2", name:"2学期",   sub:""},
+      {id:"t3", name:"3学期",   sub:""},
+      {id:"all",name:"ならった ところ ぜんぶ", sub:"ミックス（ボス）", boss:true},
+    ], monsters:[
       {id:"e1", emoji:"🦜", name:"ペラペラインコ", r:2},
       {id:"e2", emoji:"🐡", name:"エービーフグ", r:3},
     ]},
@@ -1161,15 +1173,16 @@ function rangeInfo(subId, r){
     if(!done) return {lock:true, sub:"🔜 まだ がっこうで ならって いないよ"};
     return {lock:false, sub:"ならった たんげん "+done+"/"+total};
   }
-  /* しゃかい */
-  if(subId==="social"){
-    if(!SOC_UNITS) return {lock:true, sub:"じゅんびちゅう"};
-    const taught=SOC_UNITS.filter(unitTaught);
-    if(r.id==="now"){ const p=taught.slice(-2); return {lock:false, sub:p.length?p.map(u=>u.name).join("・"):SOC_UNITS[0].name}; }
+  /* しゃかい・りか・えいご（知識・表現の単元制） */
+  const qu=quizUnits(subId);
+  if(qu!==null || subId==="science" || subId==="english" || subId==="social"){
+    if(!qu) return {lock:true, sub:"じゅんびちゅう"};
+    const taught=qu.filter(unitTaught);
+    if(r.id==="now"){ const p=taught.slice(-2); return {lock:false, sub:p.length?p.map(u=>u.name).join("・"):qu[0].name}; }
     if(r.id==="all"){ return {lock:false, sub:"ならった たんげん "+taught.length+"こ ミックス（ボス）"}; }
     const t=+r.id[1];
-    const total=SOC_UNITS.filter(u=>u.term===t).length;
-    const done=SOC_UNITS.filter(u=>u.term===t&&unitTaught(u)).length;
+    const total=qu.filter(u=>u.term===t).length;
+    const done=qu.filter(u=>u.term===t&&unitTaught(u)).length;
     if(!done) return {lock:true, sub:"🔜 まだ がっこうで ならって いないよ"};
     return {lock:false, sub:"ならった たんげん "+done+"/"+total};
   }
@@ -2245,6 +2258,161 @@ const SOC_UNITS_G6=[
   ]},
 ];
 
+/* ============ 6年 りか（大日本図書「たのしい理科6」準拠） ============
+   単元順は実物の目次（spec/教科拡張-目次データ.md・IMG_4068）。問題はオリジナル */
+const SCI_UNITS_G6=[
+  {id:"sc1", name:"ものの燃え方", term:1, s:[4,15], cat:"busshitsu", qs:[
+    {t:"ものが燃え続けるために必要な気体は？", a:"酸素", w:["ちっ素","二酸化炭素","水素"]},
+    {t:"ものが燃えたあとに増える気体は？", a:"二酸化炭素", w:["酸素","ちっ素","ヘリウム"]},
+    {t:"空気中に いちばん多くふくまれる気体は？", a:"ちっ素", w:["酸素","二酸化炭素","水蒸気"]},
+    {t:"火のついたろうそくに びんをかぶせてふたをすると 火はやがて？", a:"消える", w:["大きくなる","ずっと燃え続ける","青色のまま強くなる"]},
+    {t:"二酸化炭素を通すと 白くにごる液は？", a:"石灰水", w:["食塩水","さとう水","アルコール"]},
+    {t:"気体の割合を調べられる器具は？", a:"気体検知管", w:["虫めがね","方位磁針","メスシリンダー"]},
+  ]},
+  {id:"sc2", name:"植物の体のつくりとはたらき（日光）", term:1, s:[5,15], cat:"seimei", qs:[
+    {t:"葉に日光が当たると できる養分は？", a:"でんぷん", w:["食塩","ビタミン","カルシウム"]},
+    {t:"でんぷんが あるか調べる薬品は？", a:"ヨウ素液", w:["石灰水","アルコール","塩酸"]},
+    {t:"ヨウ素液は でんぷんにつくと 何色になる？", a:"青むらさき色", w:["赤色","白色","金色"]},
+    {t:"植物が養分を作るとき 取り入れる気体は？", a:"二酸化炭素", w:["酸素","ちっ素","水素"]},
+    {t:"植物が養分を作るとき 出す気体は？", a:"酸素", w:["二酸化炭素","ちっ素","メタン"]},
+  ]},
+  {id:"sc3", name:"人や動物の体のつくりとはたらき", term:1, s:[5,25], cat:"seimei", qs:[
+    {t:"吸った空気から 酸素を血液に取り入れる臓器は？", a:"肺", w:["胃","小腸","じん臓"]},
+    {t:"食べ物の養分を おもに吸収する臓器は？", a:"小腸", w:["肺","心臓","ぼうこう"]},
+    {t:"血液を全身に送り出す ポンプの役割の臓器は？", a:"心臓", w:["肺","かん臓","大腸"]},
+    {t:"血液中の不要なものをこし出して にょうを作る臓器は？", a:"じん臓", w:["心臓","胃","肺"]},
+    {t:"だ液は 何を変化させる？", a:"でんぷん", w:["水","食塩","しぼう"]},
+    {t:"口から始まる 食べ物の通り道を何という？", a:"消化管", w:["血管","気管","水道管"]},
+    {t:"養分をたくわえたり 体に必要なものに変えたりする臓器は？", a:"かん臓", w:["肺","ぼうこう","耳"]},
+  ]},
+  {id:"sc4", name:"植物の体のつくりとはたらき（水）", term:1, s:[6,20], cat:"seimei", qs:[
+    {t:"根から取り入れられた水は おもにどこから出ていく？", a:"葉", w:["根の先","花びら","くき の外側"]},
+    {t:"水が水蒸気になって 葉から出ていくことを何という？", a:"蒸散", w:["蒸発乾固","結露","ろ過"]},
+    {t:"葉の表面にある 水蒸気が出ていく小さな穴は？", a:"気孔", w:["毛穴","気管","へそ"]},
+    {t:"植物にふくろをかぶせて しばらくおくと 内側はどうなる？", a:"水てきがつく", w:["でんぷんがつく","砂がたまる","何も変わらない"]},
+    {t:"色水にひたした植物のくきを切ると 色がついているのは？", a:"水の通り道", w:["空気の通り道","養分のつぶ","たね"]},
+  ]},
+  {id:"sc5", name:"生物のくらしと環境", term:1, s:[7,5], cat:"seimei", qs:[
+    {t:"生き物の「食べる・食べられる」のつながりを何という？", a:"食物連鎖", w:["食物アレルギー","弱肉連鎖","生存競争"]},
+    {t:"食物連鎖のいちばんもとになる 自分で養分を作る生き物は？", a:"植物", w:["ライオン","人間","きのこ"]},
+    {t:"人や動物の体の 大部分をしめているものは？", a:"水", w:["でんぷん","鉄","空気"]},
+    {t:"水の中の小さな生き物を観察する道具は？", a:"けんび鏡", w:["望遠鏡","方位磁針","温度計"]},
+    {t:"ミジンコやミカヅキモがいるのは どんな場所？", a:"池や川の水の中", w:["火山の中","雲の上","こおりの中だけ"]},
+  ]},
+  {id:"sc6", name:"月と太陽", term:2, s:[9,1], cat:"chikyu", qs:[
+    {t:"月が光って見えるのは なぜ？", a:"太陽の光を反射しているから", w:["自分で燃えているから","地球の光を受けているから","電気がついているから"]},
+    {t:"月の形が 日によって変わって見えるのは 月と何の位置関係が変わるから？", a:"太陽", w:["火星","北極星","天の川"]},
+    {t:"月の表面にある 丸いくぼみを何という？", a:"クレーター", w:["カルデラ","マグマ","プレート"]},
+    {t:"満月から次の満月まで およそ何日？", a:"約30日", w:["約7日","約100日","約365日"]},
+    {t:"夕方 西の空に見える 細い月を何という？", a:"三日月", w:["満月","半月","新月"]},
+  ]},
+  {id:"sc7", name:"水よう液の性質", term:2, s:[10,1], cat:"busshitsu", qs:[
+    {t:"青色リトマス紙を赤く変えるのは 何性の水よう液？", a:"酸性", w:["アルカリ性","中性","無性"]},
+    {t:"赤色リトマス紙を青く変えるのは 何性の水よう液？", a:"アルカリ性", w:["酸性","中性","油性"]},
+    {t:"どちらのリトマス紙も変わらないのは 何性？", a:"中性", w:["酸性","アルカリ性","強酸性"]},
+    {t:"炭酸水に とけている気体は？", a:"二酸化炭素", w:["酸素","ちっ素","ヘリウム"]},
+    {t:"塩酸にアルミニウムを入れると どうなる？", a:"あわを出してとける", w:["こおる","火がつく","何も起きない"]},
+    {t:"食塩水を蒸発させると あとに残るのは？", a:"食塩", w:["何も残らない","さとう","アルミニウム"]},
+  ]},
+  {id:"sc8", name:"土地のつくりと変化", term:2, s:[11,1], cat:"chikyu", qs:[
+    {t:"がけなどで見られる しま模様の土地のつくりを何という？", a:"地層", w:["断面図","化石層","年輪"]},
+    {t:"大昔の生き物の体や生活のあとが 地層から出てきたものを何という？", a:"化石", w:["宝石","土器","はにわ"]},
+    {t:"流れる水のはたらきで できた地層のつぶの形は？", a:"丸みがある", w:["角ばっている","すべて同じ大きさ","星の形"]},
+    {t:"火山灰が積もってできた地層のつぶの形は？", a:"角ばっている", w:["丸い","とけている","やわらかい"]},
+    {t:"地震のときに 大地にできる大きなずれを何という？", a:"断層", w:["地層","クレーター","つなみ"]},
+    {t:"れき・砂・どろを つぶの大きい順にならべると？", a:"れき→砂→どろ", w:["どろ→砂→れき","砂→れき→どろ","どれも同じ大きさ"]},
+  ]},
+  {id:"sc9", name:"てこのはたらき", term:2, s:[12,1], cat:"energy", qs:[
+    {t:"てこで 棒を支えている点を何という？", a:"支点", w:["力点","作用点","頂点"]},
+    {t:"てこで 力を加える点を何という？", a:"力点", w:["支点","作用点","出発点"]},
+    {t:"てこで ものに力がはたらく点を何という？", a:"作用点", w:["支点","力点","集合点"]},
+    {t:"小さな力で重いものを持ち上げるには 支点から力点までのきょりを？", a:"長くする", w:["短くする","なくす","ななめにする"]},
+    {t:"てこがつり合うのは「おもりの重さ×支点からの（　）」が左右で等しいとき？", a:"きょり", w:["高さ","時間","温度"]},
+    {t:"てこのはたらきを利用した道具は？", a:"はさみ", w:["コップ","タオル","まくら"]},
+  ]},
+  {id:"sc10", name:"私たちの生活と電気", term:3, s:[1,15], cat:"energy", qs:[
+    {t:"手回し発電機で作った電気を たくわえられる部品は？", a:"コンデンサー", w:["ヨウ素液","リトマス紙","方位磁針"]},
+    {t:"同じ電気の量で 豆電球より長く光るのは？", a:"発光ダイオード（LED）", w:["ろうそく","白熱電球","蛍光ペン"]},
+    {t:"光電池（太陽電池）は 何を電気に変える？", a:"光", w:["音","におい","塩分"]},
+    {t:"電気は 光・音・熱のほかに 何に変えて利用される？", a:"動き（運動）", w:["重さ","時間","方角"]},
+    {t:"スイッチであかりが自動でつく街灯は 何を感知している？", a:"明るさ（暗くなったこと）", w:["におい","味","星座"]},
+  ]},
+  {id:"sc11", name:"かけがえのない地球環境", term:3, s:[3,1], cat:"chikyu", qs:[
+    {t:"地球温暖化の原因のひとつと考えられている気体は？", a:"二酸化炭素", w:["酸素","ちっ素","水蒸気だけ"]},
+    {t:"森林が減ると 空気中の二酸化炭素はどうなる？", a:"増える", w:["減る","なくなる","変わらない"]},
+    {t:"使い終わったものを資源にもどして くり返し使うことを何という？", a:"リサイクル", w:["リハーサル","リフォームだけ","リタイア"]},
+    {t:"環境を守りながら 未来もくらし続けられる社会を（　）な社会という？", a:"持続可能", w:["一時的","高速","無関係"]},
+  ]},
+];
+/* ============ 6年 えいご（三省堂「CROWN Jr. 6」準拠） ============
+   en⇔ja のペアから「意味えらび・聞き取り・英語でどう言う」を自動生成する */
+const ENG_UNITS_G6=[
+  {id:"en1", name:"わたしたちの町", term:1, s:[4,20], qs:[
+    {en:"This is our town.", ja:"これが わたしたちの町です。"},
+    {en:"We have a big park.", ja:"大きな公園が あります。"},
+    {en:"You can enjoy fishing.", ja:"つりを 楽しめます。"},
+    {en:"library", ja:"図書館"},
+    {en:"hospital", ja:"病院"},
+    {en:"station", ja:"駅"},
+  ]},
+  {id:"en2", name:"世界の国から", term:1, s:[5,15], qs:[
+    {en:"We are from India.", ja:"わたしたちは インド出身です。"},
+    {en:"Where are you from?", ja:"あなたは どこの出身ですか？"},
+    {en:"I'm from Japan.", ja:"わたしは 日本出身です。"},
+    {en:"country", ja:"国"},
+    {en:"the U.S.", ja:"アメリカ"},
+    {en:"China", ja:"中国"},
+  ]},
+  {id:"en3", name:"行事と季節", term:1, s:[6,10], qs:[
+    {en:"We have Children's Day in May.", ja:"5月に こどもの日が あります。"},
+    {en:"January", ja:"1月"},
+    {en:"May", ja:"5月"},
+    {en:"October", ja:"10月"},
+    {en:"summer festival", ja:"夏祭り"},
+    {en:"New Year's Day", ja:"お正月"},
+  ]},
+  {id:"en4", name:"夏の思い出", term:2, s:[9,5], qs:[
+    {en:"I went to the beach.", ja:"わたしは うみべに 行きました。"},
+    {en:"I ate watermelon.", ja:"わたしは すいかを 食べました。"},
+    {en:"I saw fireworks.", ja:"わたしは 花火を 見ました。"},
+    {en:"I enjoyed camping.", ja:"わたしは キャンプを 楽しみました。"},
+    {en:"It was fun.", ja:"楽しかったです。"},
+    {en:"mountain", ja:"山"},
+  ]},
+  {id:"en5", name:"かんそうを伝える", term:2, s:[10,10], qs:[
+    {en:"It was green.", ja:"それは 緑色でした。"},
+    {en:"It was delicious.", ja:"それは おいしかったです。"},
+    {en:"It was exciting.", ja:"それは わくわくしました。"},
+    {en:"beautiful", ja:"美しい"},
+    {en:"interesting", ja:"おもしろい"},
+    {en:"wonderful", ja:"すばらしい"},
+  ]},
+  {id:"en6", name:"小学校の思い出", term:2, s:[11,20], qs:[
+    {en:"My best memory is the school trip.", ja:"いちばんの思い出は 修学旅行です。"},
+    {en:"sports day", ja:"運動会"},
+    {en:"music festival", ja:"音楽会"},
+    {en:"swimming meet", ja:"水泳大会"},
+    {en:"graduation ceremony", ja:"卒業式"},
+    {en:"We sang songs.", ja:"わたしたちは 歌を歌いました。"},
+  ]},
+  {id:"en7", name:"なりたい職業", term:3, s:[1,15], qs:[
+    {en:"I want to be a singer.", ja:"わたしは 歌手に なりたいです。"},
+    {en:"What do you want to be?", ja:"あなたは 何に なりたいですか？"},
+    {en:"teacher", ja:"先生"},
+    {en:"doctor", ja:"医者"},
+    {en:"vet", ja:"じゅう医"},
+    {en:"soccer player", ja:"サッカー選手"},
+  ]},
+  {id:"en8", name:"中学校でやりたいこと", term:3, s:[2,15], qs:[
+    {en:"I want to join the brass band.", ja:"わたしは すいそう楽部に 入りたいです。"},
+    {en:"I want to enjoy the school festival.", ja:"わたしは 文化祭を 楽しみたいです。"},
+    {en:"club", ja:"クラブ（部活）"},
+    {en:"junior high school", ja:"中学校"},
+    {en:"I like music.", ja:"わたしは 音楽が 好きです。"},
+    {en:"study English", ja:"英語を 勉強する"},
+  ]},
+];
+
 /* 6年の配当かんじ 191字（m＝ならう月の目安。あいうえお順の均等わり） */
 const KANJI_G6=[
   {w:"胃",r:"い",m:4},{w:"異",r:"ことなる",m:4},{w:"遺",r:"い",m:4},{w:"域",r:"いき",m:4},
@@ -2520,21 +2688,25 @@ const GRADE_PACKS={
   6:{label:"6ねんせい",
      mathUnits:MATH_UNITS_G6, kanji:KANJI_G6, kanjiAlt:KANJI_ALT_G6, sents:SENTS_G6,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G6, preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join(""),
-     socUnits:SOC_UNITS_G6},
+     socUnits:SOC_UNITS_G6, sciUnits:SCI_UNITS_G6, engUnits:ENG_UNITS_G6},
 };
 /* いま あそんでいる子の学年の中身。applyGradePack() で引き出しごと入れ替える */
 let MATH_UNITS=MATH_UNITS_G3, KANJI=KANJI_G3, KANJI_ALT=KANJI_ALT_G3, SENTS=SENTS_G3,
-    KANJI_MONTH_ORDER=KANJI_MONTH_ORDER_G3, PRE_KANJI=G1_KANJI+G2_KANJI, MOJI=null, SOC_UNITS=null;
+    KANJI_MONTH_ORDER=KANJI_MONTH_ORDER_G3, PRE_KANJI=G1_KANJI+G2_KANJI, MOJI=null,
+    SOC_UNITS=null, SCI_UNITS=null, ENG_UNITS=null;
 function applyGradePack(){
   const p=GRADE_PACKS[D&&D.grade]||GRADE_PACKS[3];
   MATH_UNITS=p.mathUnits; KANJI=p.kanji; KANJI_ALT=p.kanjiAlt; SENTS=p.sents;
   KANJI_MONTH_ORDER=p.kanjiMonthOrder; PRE_KANJI=p.preKanji; MOJI=p.moji||null;
-  SOC_UNITS=p.socUnits||null;   /* しゃかいの引き出し（データのある学年だけ 教科が解放される） */
+  /* しゃかい・りか・えいごの引き出し（データのある学年だけ 教科が解放される） */
+  SOC_UNITS=p.socUnits||null; SCI_UNITS=p.sciUnits||null; ENG_UNITS=p.engUnits||null;
   KNOWN_KANJI=null;   /* 学年が変わると 学習ずみ漢字も 変わる */
 }
 /* 教科が今の学年で あそべるか（じゅんびちゅう判定） */
 function subjectReady(s){
   if(s.id==="social") return !!SOC_UNITS;
+  if(s.id==="science") return !!SCI_UNITS;
+  if(s.id==="english") return !!ENG_UNITS;
   return !!s.ready;
 }
 function taughtKanjiMonths(){ return KANJI_MONTH_ORDER.filter(monthTaught); }
@@ -2603,28 +2775,68 @@ function makeMoji(){
   return {kind:"read", text:"「"+it[0]+"」", hint:"どの え かな？", answer:it[1],
     choices:shuffle([...opts]), cat:"moji"};
 }
-/* ===== しゃかいの出題（知識4択・単元カレンダー連動） ===== */
-function socPool(rangeId){
-  const taught=SOC_UNITS.filter(u=>unitTaught(u));
+/* ===== 知識4択の出題（しゃかい・りか 共通。単元カレンダー連動） ===== */
+function quizUnits(subId){
+  if(subId==="social") return SOC_UNITS;
+  if(subId==="science") return SCI_UNITS;
+  if(subId==="english") return ENG_UNITS;
+  return null;
+}
+const QUIZ_TAG={social:{n:"しゃかい", bg:"#d97706"}, science:{n:"りか", bg:"#0d9488"}, english:{n:"えいご", bg:"#7c3aed"}};
+function knowledgePool(units, rangeId){
+  const taught=units.filter(u=>unitTaught(u));
   let pool;
   if(rangeId==="now") pool=taught.slice(-2);
   else if(rangeId==="t1"||rangeId==="t2"||rangeId==="t3"){ const t=+rangeId[1]; pool=taught.filter(u=>u.term===t); }
   else pool=taught;
-  if(!pool.length) pool=[SOC_UNITS[0]];
+  if(!pool.length) pool=[units[0]];
   return pool;
 }
-function makeSocial(rangeId){
-  let pool=socPool(rangeId);
+function pickQuizUnit(units, rangeId){
+  let pool=knowledgePool(units, rangeId);
   /* ボスは 半分を「いま ならって いる ところ」から */
-  if(rangeId==="all" && Math.random()<0.5){ const recent=socPool("now"); if(recent.length) pool=recent; }
-  const u=pool[Math.floor(Math.random()*pool.length)];
+  if(rangeId==="all" && Math.random()<0.5){ const recent=knowledgePool(units,"now"); if(recent.length) pool=recent; }
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function makeKnowledge(subId, rangeId){
+  const units=quizUnits(subId), meta=QUIZ_TAG[subId];
+  const u=pickQuizUnit(units, rangeId);
   const qa=u.qs[Math.floor(Math.random()*u.qs.length)];
-  return {kind:"read", social:true, text:qa.t, hint:"", answer:qa.a,
+  return {kind:"read", quiz:true, qk:"q:"+qa.t, qtag:meta.n, qbg:meta.bg, text:qa.t, hint:"", answer:qa.a,
     choices:shuffle([qa.a].concat(qa.w)), cat:u.cat, unit:u.id, ulabel:u.name};
+}
+/* ===== えいごの出題（意味えらび・聞き取り・英作えらび） ===== */
+function makeEnglish(rangeId){
+  const u=pickQuizUnit(ENG_UNITS, rangeId);
+  const qa=u.qs[Math.floor(Math.random()*u.qs.length)];
+  const others=shuffle(u.qs.filter(x=>x!==qa).slice());
+  const fillJa=[], fillEn=[];
+  others.forEach(x=>{ if(fillJa.length<3) fillJa.push(x.ja); if(fillEn.length<3) fillEn.push(x.en); });
+  /* たりなければ ほかの単元から借りる */
+  let g=0;
+  while((fillJa.length<3 || fillEn.length<3) && g++<40){
+    const uu=ENG_UNITS[rnd(0,ENG_UNITS.length-1)], xx=uu.qs[rnd(0,uu.qs.length-1)];
+    if(xx.ja!==qa.ja && fillJa.length<3 && !fillJa.includes(xx.ja)) fillJa.push(xx.ja);
+    if(xx.en!==qa.en && fillEn.length<3 && !fillEn.includes(xx.en)) fillEn.push(xx.en);
+  }
+  const v=rnd(1,3), meta=QUIZ_TAG.english;
+  if(v===1){   /* 英文→意味（きくボタンで発音も聞ける） */
+    return {kind:"read", quiz:true, qk:"e:"+qa.en, qtag:meta.n, qbg:meta.bg, text:qa.en, hint:"どんな いみ？", answer:qa.ja,
+      choices:shuffle([qa.ja].concat(fillJa)), cat:"eigo", unit:u.id, ulabel:u.name,
+      speech:qa.en, speechLang:"en-US"};
+  }
+  if(v===2){   /* 聞き取り：英文は見せない */
+    return {kind:"read", quiz:true, qk:"e:"+qa.en, qtag:meta.n, qbg:meta.bg, text:"🎧 「きく」を おして きいてみよう", hint:"なんて 言った？", answer:qa.ja,
+      choices:shuffle([qa.ja].concat(fillJa)), cat:"eigo", unit:u.id, ulabel:u.name,
+      speech:qa.en, speechLang:"en-US"};
+  }
+  return {kind:"read", quiz:true, qk:"e:"+qa.en, qtag:meta.n, qbg:meta.bg, text:qa.ja, hint:"英語で 言うと？", answer:qa.en,
+    choices:shuffle([qa.en].concat(fillEn)), cat:"eigo", unit:u.id, ulabel:u.name};
 }
 function makeQuestion(){
   if(curSub.id==="math") return makeMath(curRange.id);
-  if(curSub.id==="social") return makeSocial(curRange.id);
+  if(curSub.id==="english") return makeEnglish(curRange.id);
+  if(quizUnits(curSub.id)) return makeKnowledge(curSub.id, curRange.id);
   let mode=curMode;
   if(mode==="moji") return makeMoji();
   /* 1年生：かんじを まだ ならって いない あいだ（〜夏）は ぜんぶ もじあつめ */
@@ -2641,7 +2853,7 @@ function makeQuestion(){
 }
 /* 1回のバトル中は おなじ問題を出さない */
 let asked=null;
-function qKey(q){ return q.kind==="math" ? "m:"+q.text : "k:"+(q.w || (q.kind==="read"?q.text:q.kanji)); }
+function qKey(q){ if(q.qk) return q.qk; return q.kind==="math" ? "m:"+q.text : "k:"+(q.w || (q.kind==="read"?q.text:q.kanji)); }
 function makeQuestionUnique(){
   let qq=makeQuestion(), guard=0;
   while(asked && asked.has(qKey(qq)) && guard++<25){ qq=makeQuestion(); }
@@ -2702,7 +2914,7 @@ function renderChoices(choices){
 /* ===== よみあげ「きく」ボタン =====
    まだ すらすら読めない子むけ（1年生対応の柱）。ブラウザ標準の音声（無料）を使う。
    かんじの「よみ」問題は 読むと答えを言ってしまうので 算数だけに出す */
-let SPEAK_TEXT="";
+let SPEAK_TEXT="", SPEAK_LANG="ja-JP";
 function mathSpeech(t){
   return t
     .replace(/(\d+)\s*\/\s*(\d+)/g,"$2ぶんの$1")   /* 3/5 → 5ぶんの3 */
@@ -2710,8 +2922,9 @@ function mathSpeech(t){
     .replace(/−/g," ひく ").replace(/[＋+]/g," たす ")   /* ー（のばし棒）は さわらない */
     .replace(/□/g,"しかく");
 }
-function setSpeak(text){
+function setSpeak(text, lang){
   SPEAK_TEXT=text||"";
+  SPEAK_LANG=lang||"ja-JP";
   if("speechSynthesis" in window) speechSynthesis.cancel();   /* 前の問題の声を止める */
   const b=document.getElementById("btnSpeak");
   if(b) b.style.display=(SPEAK_TEXT && "speechSynthesis" in window)?"inline-block":"none";
@@ -2720,7 +2933,7 @@ function speakQ(){
   if(!SPEAK_TEXT || !("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(SPEAK_TEXT);
-  u.lang="ja-JP"; u.rate=0.85;
+  u.lang=SPEAK_LANG; u.rate=(SPEAK_LANG==="en-US")?0.8:0.85;   /* 英語は ゆっくりめ */
   speechSynthesis.speak(u);
 }
 function loadQ(){
@@ -2749,9 +2962,9 @@ function loadQ(){
     if(q.ch){ renderChoices(q.choices); }
     else{ numI.style.display="block"; renderAnswerBox(); }
   }else if(q.kind==="read"){
-    setSpeak(q.speech||"");   /* もじあつめは「きく」で 音と もじを つなげる */
+    setSpeak(q.speech||"", q.speechLang);   /* もじあつめ・えいごは「きく」で 音を つなげる */
     tag.style.background="var(--pink)";
-    if(q.social){ tag.textContent="しゃかい"; tag.style.background="#d97706"; qtext.style.fontSize="24px"; }
+    if(q.quiz){ tag.textContent=q.qtag; tag.style.background=q.qbg; qtext.style.fontSize="24px"; }
     else if(q.cat==="moji"){ tag.textContent="もじ"; qtext.style.fontSize=""; }
     else if(q.sent){ tag.textContent="ぶんしょう"; qtext.style.fontSize="24px"; }
     else if(q.cat==="okuri"){ tag.textContent="おくりがな"; qtext.style.fontSize="34px"; }
@@ -2977,7 +3190,7 @@ function maybeAssist(){
 function addReviewFromQ(){
   if(!curQ) return;
   if(curQ.cat==="moji") return;   /* もじあつめは 復習プールに入れない（かんじ扱いになってしまうため） */
-  if(curQ.social) return;         /* しゃかいも 同様（復習プールは 算数・かんじ用の構造） */
+  if(curQ.quiz) return;           /* しゃかい・りか・えいごも 同様（復習プールは 算数・かんじ用の構造） */
   if(curQ.kind==="math" && curQ.ch) return;   /* えらぶ式の問題は 復習プールに入れない */
   if(curQ.kind==="math"){
     const pool=D.review.math;
@@ -3545,7 +3758,9 @@ function openCheckPicker(){
   const list=document.getElementById("checkPickList"); list.innerHTML="";
   const picks=[{id:"math", emo:"🔢", n:"さんすう", s:"ならった たんげんから 2もんずつ"},
    {id:"kanji", emo:"🈶", n:"こくご（かんじの よみ）", s:"ならった 月から 3もんずつ"}];
+  if(SCI_UNITS) picks.push({id:"science", emo:"🔬", n:"りか", s:"ならった たんげんから 2もんずつ"});
   if(SOC_UNITS) picks.push({id:"social", emo:"🗺️", n:"しゃかい", s:"ならった たんげんから 2もんずつ"});
+  if(ENG_UNITS) picks.push({id:"english", emo:"🔤", n:"えいご", s:"ならった たんげんから 2もんずつ"});
   picks.forEach(x=>{
     const b=document.createElement("button"); b.className="rangebtn";
     b.innerHTML=`<div style="text-align:left;"><div class="rname">${x.emo} ${x.n}</div><div class="rsub">${x.s}</div></div><div class="go">▶</div>`;
@@ -3574,11 +3789,23 @@ function startCheck(subId){
         qq.unit=u.id; qq.ulabel=u.name; qs.push(qq);
       }
     });
-  }else if(subId==="social"){
-    SOC_UNITS.filter(u=>unitTaught(u)).forEach(u=>{
+  }else if(subId==="social" || subId==="science"){
+    const meta=QUIZ_TAG[subId];
+    quizUnits(subId).filter(u=>unitTaught(u)).forEach(u=>{
       shuffle(u.qs.slice()).slice(0,2).forEach(qa=>{
-        qs.push({kind:"read", social:true, text:qa.t, hint:"", answer:qa.a,
+        qs.push({kind:"read", quiz:true, qk:"q:"+qa.t, qtag:meta.n, qbg:meta.bg, text:qa.t, hint:"", answer:qa.a,
           choices:shuffle([qa.a].concat(qa.w)), cat:u.cat, unit:u.id, ulabel:u.name});
+      });
+    });
+  }else if(subId==="english"){
+    const meta=QUIZ_TAG.english;
+    ENG_UNITS.filter(u=>unitTaught(u)).forEach(u=>{
+      const items=shuffle(u.qs.slice()).slice(0,2);
+      items.forEach(qa=>{
+        const wrongs=shuffle(u.qs.filter(x=>x!==qa).map(x=>x.ja)).slice(0,3);
+        qs.push({kind:"read", quiz:true, qk:"e:"+qa.en, qtag:meta.n, qbg:meta.bg, text:qa.en, hint:"どんな いみ？", answer:qa.ja,
+          choices:shuffle([qa.ja].concat(wrongs)), cat:"eigo", unit:u.id, ulabel:u.name,
+          speech:qa.en, speechLang:"en-US"});
       });
     });
   }else if(MOJI && !taughtKanjiMonths().length){
@@ -3606,7 +3833,7 @@ function startCheck(subId){
 }
 function judgeCheck(ok, ans){
   const q=chk.qs[chk.i];
-  const key = (chk.sub==="math"||chk.sub==="social") ? q.unit : (q.cat==="moji" ? "moji" : "m"+q.m);
+  const key = (chk.sub==="math"||quizUnits(chk.sub)) ? q.unit : (q.cat==="moji" ? "moji" : "m"+q.m);
   const r=(chk.res[key]=chk.res[key]||{label:q.ulabel, n:0, ok:0});
   r.n++; if(ok){ r.ok++; correctCount++; addGems(1); }
   showFB(ok, ok?1:ans, false);
@@ -3628,7 +3855,7 @@ function finishCheck(){
 }
 function checkMark(r){ const rate=r.n?r.ok/r.n:0; return rate>=1?"○":(rate>=0.5?"△":"×"); }
 function renderCheckResult(rec, fresh){
-  const subName = rec.sub==="math" ? "さんすう" : (rec.sub==="social" ? "しゃかい" : "こくご");
+  const subName = {math:"さんすう", social:"しゃかい", science:"りか", english:"えいご"}[rec.sub] || "こくご";
   let rows="";
   rec.items.forEach(r=>{
     const rate=r.n?r.ok/r.n:0;
@@ -3773,7 +4000,9 @@ const CAT_LABEL={add:"たしざん", sub:"ひきざん", mul:"かけざん", div
   frac:"ぶんすう", dec:"しょうすう", box:"□を使った式", bai:"なんばい", zu:"ずけい",
   bun:"文章もんだい", kazu:"かず・ばんめ", kurabe:"くらべかた", moji:"もじあつめ",
   shiki:"文字と式", baai:"場合の数", hi:"比", hirei:"比例・反比例", data:"データ・平均",
-  seiji:"政治とくらし", rekishi:"歴史", kokusai:"世界の中の日本"};
+  seiji:"政治とくらし", rekishi:"歴史", kokusai:"世界の中の日本",
+  seimei:"生命（体・植物）", busshitsu:"もの・水よう液", chikyu:"地球（月・大地）", energy:"エネルギー（てこ・電気）",
+  eigo:"えいご"};
 const HOUR_BUCKETS=[
   {key:"あさ",   lo:5,  hi:10, label:"あさ (5-10時)"},
   {key:"ひる",   lo:11, hi:14, label:"ひる (11-14時)"},
