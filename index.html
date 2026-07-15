@@ -1016,6 +1016,7 @@ function normalizeSave(d){
   if(typeof d.trophyIdx!=="number") d.trophyIdx=0;
   if(typeof d.trophyOver!=="number") d.trophyOver=0;
   if(!Array.isArray(d.titles)) d.titles=[];
+  if(!Array.isArray(d.rarityBonus)) d.rarityBonus=[];
   if(![1,3,6].includes(d.grade)) d.grade=3;   /* 学年（引き出し）。むかしのデータは 3年生あつかい */
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
@@ -1089,16 +1090,12 @@ function renderHome(){
   const cp=currentPlayer();
   document.getElementById("homePlayerName").textContent = cp ? cp.name : "";
   document.getElementById("homeStreak").textContent = (D.loginStreak>=2) ? "🔥 "+D.loginStreak+"日 れんぞくで あそんでいるよ！" : "";
-  /* 6年生：トロフィーロードの現在地（タップで きろくルーム） */
+  /* トロフィーロードの現在地（全学年・タップで きろくルーム） */
   const tr=document.getElementById("homeTrophy");
-  if(D.grade===6){
-    const info=nextTrophyInfo();
-    const title=currentTitle();
-    tr.textContent="🏆 "+D.trophies+(title?"　「"+title+"」":"")+"　つぎの "+info.label+" まで あと"+info.need+"勝 ▶";
-    tr.style.display="";
-  }else{
-    tr.style.display="none";
-  }
+  const tInfo=nextTrophyInfo();
+  const title=currentTitle();
+  tr.textContent="🏆 "+D.trophies+(title?"　「"+title+"」":"")+"　つぎの "+tInfo.label+" まで あと"+tInfo.need+"かい ▶";
+  tr.style.display="";
   const evo=winsToNextEvo();
   document.getElementById("homeEvo").textContent = evo ? `✨ ${evo.ns.emoji}「${evo.ns.name}」まで あと ${evo.wins}かい かてば しんか！` : "";
   renderMissions();
@@ -2662,24 +2659,24 @@ function allySad(){
   const w=document.getElementById("allyWrap");
   w.classList.remove("lunge","sad"); void w.offsetWidth; w.classList.add("sad");
 }
-/* ===== トロフィーロード（6年生）：勝つたびに🏆が貯まり 一本道のごほうびが順に開く ===== */
+/* ===== トロフィーロード（全学年）：勝つたびに🏆が貯まり 一本道のごほうびが順に開く ===== */
 const TROPHY_ROAD=[
-  {t:1,  gems:20},              {t:3,  title:"かけだし冒険者"},
-  {t:5,  gems:30},              {t:8,  title:"ルーキーハンター"},
-  {t:12, gems:40},              {t:16, title:"熟練ハンター"},
+  {t:1,  gems:20},              {t:3,  title:"ルーキー"},
+  {t:5,  gems:30},              {t:8,  title:"ハンター"},
+  {t:12, gems:40},              {t:16, title:"ベテランハンター"},
   {t:20, gems:50},              {t:25, title:"エリート"},
   {t:30, gems:60},              {t:36, title:"マスター"},
   {t:42, gems:80},              {t:50, title:"グランドマスター"},
   {t:60, gems:100},             {t:75, title:"レジェンド"},
-  {t:100, gems:150, title:"伝説の勇者"},
+  {t:100, gems:150, title:"でんせつの ゆうしゃ"},
 ];
 function trophyRoadCheck(){
   /* 通過したごほうびを その場で付与して 勝利画面用メッセージを返す */
   let msg="";
   while(D.trophyIdx<TROPHY_ROAD.length && D.trophies>=TROPHY_ROAD[D.trophyIdx].t){
     const m=TROPHY_ROAD[D.trophyIdx];
-    if(m.gems){ addGems(m.gems); msg+="<br>🏆 ロードのごほうび！ 💎+"+m.gems; }
-    if(m.title){ if(!D.titles.includes(m.title)) D.titles.push(m.title); msg+="<br>🏆 称号かくとく「"+m.title+"」"; }
+    if(m.gems){ addGems(m.gems); msg+="<br>🏆 ロードの ごほうび！ 💎+"+m.gems; }
+    if(m.title){ if(!D.titles.includes(m.title)) D.titles.push(m.title); msg+="<br>🏆 しょうごう ゲット！「"+m.title+"」"; }
     D.trophyIdx++;
   }
   /* ロードを走りきったら 10勝ごとに💎30（エンドレス） */
@@ -2692,7 +2689,7 @@ function trophyRoadCheck(){
 function nextTrophyInfo(){
   if(D.trophyIdx<TROPHY_ROAD.length){
     const m=TROPHY_ROAD[D.trophyIdx];
-    return {need:Math.max(1,m.t-D.trophies), label:m.gems?("💎"+m.gems):("称号「"+m.title+"」")};
+    return {need:Math.max(1,m.t-D.trophies), label:m.gems?("💎"+m.gems):("しょうごう「"+m.title+"」")};
   }
   const nextT=100+(D.trophyOver+1)*10;
   return {need:Math.max(1,nextT-D.trophies), label:"💎30"};
@@ -2713,35 +2710,35 @@ function openRecords(){
   const title=currentTitle();
   let th=`<div class="rep-h">🏆 トロフィーロード</div>
     <div class="stat"><span>トロフィー</span><span class="v">🏆 ${D.trophies}</span></div>
-    ${title?`<div class="stat"><span>称号</span><span class="v">「${title}」</span></div>`:""}
-    <div class="stat"><span>つぎのごほうび</span><span class="v">${info.label}（あと${info.need}勝）</span></div>`;
+    ${title?`<div class="stat"><span>しょうごう</span><span class="v">「${title}」</span></div>`:""}
+    <div class="stat"><span>つぎの ごほうび</span><span class="v">${info.label}（あと${info.need}かい かつ）</span></div>`;
   const coming=TROPHY_ROAD.slice(D.trophyIdx, D.trophyIdx+3);
   if(coming.length){
-    th+='<div class="secsub" style="margin-top:8px;">この先のロード</div>';
-    coming.forEach(m=>{ th+=`<div class="stat"><span>🏆${m.t}</span><span class="v">${m.gems?"💎"+m.gems:""}${m.title?" 称号「"+m.title+"」":""}</span></div>`; });
+    th+='<div class="secsub" style="margin-top:8px;">この さきの ロード</div>';
+    coming.forEach(m=>{ th+=`<div class="stat"><span>🏆${m.t}</span><span class="v">${m.gems?"💎"+m.gems:""}${m.title?" しょうごう「"+m.title+"」":""}</span></div>`; });
   }
   document.getElementById("recTrophy").innerHTML=th;
   /* 単元ランク */
-  let rh='<div class="rep-h">🎖️ 単元ランク</div>';
+  let rh='<div class="rep-h">🎖️ たんげんランク</div>';
   const units=taughtMathUnits();
-  if(!units.length) rh+='<div class="secsub">算数の問題を とくと ランクが 育つよ</div>';
+  if(!units.length) rh+='<div class="secsub">さんすうの もんだいを とくと ランクが そだつよ</div>';
   units.forEach(u=>{
     const r=unitRank(u.id);
     rh+=barRow(rankBadge(r.rank)+" "+u.name, r.rank/20*100, "ランク"+r.rank, rankColor(r.rank));
   });
-  rh+='<div class="secsub" style="margin-top:6px;">正解すると 上がる。ランクの低い単元が「のびしろ」！</div>';
+  rh+='<div class="secsub" style="margin-top:6px;">せいかいすると 上がる。ひくい たんげんが「のびしろ」！</div>';
   document.getElementById("recRanks").innerHTML=rh;
-  /* 自分の記録 */
+  /* じぶんの記録 */
   const log=D.log||[];
   const okN=log.reduce((s,e)=>s+e.ok,0);
   const acc=log.length?Math.round(okN/log.length*100):0;
   const msArr=log.filter(l=>l.ms>0).map(l=>l.ms);
   const avgSec=msArr.length?(msArr.reduce((a,b)=>a+b,0)/msArr.length/1000):0;
-  document.getElementById("recStats").innerHTML=`<div class="rep-h">📈 自分の記録</div>
-    <div class="stat"><span>といた問題</span><span class="v">${D.total}問</span></div>
-    <div class="stat"><span>正解率</span><span class="v">${acc}%</span></div>
-    <div class="stat"><span>最高連続正解</span><span class="v">${D.bestStreak}連続</span></div>
-    <div class="stat"><span>平均スピード</span><span class="v">${avgSec?avgSec.toFixed(1)+"秒":"—"}</span></div>`;
+  document.getElementById("recStats").innerHTML=`<div class="rep-h">📈 じぶんの きろく</div>
+    <div class="stat"><span>といた もんだい</span><span class="v">${D.total}もん</span></div>
+    <div class="stat"><span>せいかいりつ</span><span class="v">${acc}%</span></div>
+    <div class="stat"><span>さいこう れんぞく せいかい</span><span class="v">${D.bestStreak}れんぞく</span></div>
+    <div class="stat"><span>へいきん スピード</span><span class="v">${avgSec?avgSec.toFixed(1)+"びょう":"—"}</span></div>`;
   show("scRecords");
 }
 /* ホームの相棒：タップすると よろこぶ（1年生は ボケ全開） */
@@ -3029,28 +3026,50 @@ function claimMission(i){
 /* ============ タマゴガチャ・スキン・レアリティ ============ */
 const GACHA_COST=30;
 const RARITY={
-  1:{name:"ノーマル",     col:"#94a3b8", refund:10},
-  2:{name:"レア",         col:"#3b82f6", refund:20},
-  3:{name:"スーパーレア", col:"#8b5cf6", refund:40},
-  4:{name:"ウルトラレア", col:"#f59e0b", refund:80},
+  1:{name:"ノーマル",     col:"#94a3b8", refund:10, comp:60},
+  2:{name:"レア",         col:"#3b82f6", refund:20, comp:100},
+  3:{name:"スーパーレア", col:"#8b5cf6", refund:40, comp:150},
+  4:{name:"ウルトラレア", col:"#f59e0b", refund:80, comp:250},
 };
 const GACHA_ITEMS=[
   /* あたま（スキン） */
   {id:"h_cap",     kind:"head", emoji:"🧢", name:"キャップ",           r:1},
   {id:"h_ribbon",  kind:"head", emoji:"🎀", name:"リボン",             r:1},
   {id:"h_flower",  kind:"head", emoji:"🌸", name:"はなかざり",         r:1},
+  {id:"h_straw",   kind:"head", emoji:"👒", name:"むぎわらぼうし",     r:1},
+  {id:"h_glasses", kind:"head", emoji:"👓", name:"まるめがね",         r:1},
+  {id:"h_berry",   kind:"head", emoji:"🍓", name:"いちごぼうし",       r:1},
   {id:"h_top",     kind:"head", emoji:"🎩", name:"シルクハット",       r:2},
   {id:"h_grad",    kind:"head", emoji:"🎓", name:"はかせぼうし",       r:2},
+  {id:"h_shades",  kind:"head", emoji:"🕶️", name:"クールサングラス",   r:2},
+  {id:"h_phones",  kind:"head", emoji:"🎧", name:"ヘッドホン",         r:2},
+  {id:"h_pumpkin", kind:"head", emoji:"🎃", name:"かぼちゃマスク",     r:2},
   {id:"h_crown",   kind:"head", emoji:"👑", name:"おうさまの かんむり", r:3},
+  {id:"h_fire",    kind:"head", emoji:"🔥", name:"ほのおの かんむり",   r:3},
+  {id:"h_ice",     kind:"head", emoji:"❄️", name:"こおりの かんむり",   r:3},
+  {id:"h_thunder", kind:"head", emoji:"⚡", name:"かみなりの かんむり", r:3},
   {id:"h_rainbow", kind:"head", emoji:"🌈", name:"にじの かんむり",     r:4},
+  {id:"h_star",    kind:"head", emoji:"🌟", name:"スターの かんむり",   r:4},
+  {id:"h_dragon",  kind:"head", emoji:"🐲", name:"りゅうの かぶと",     r:4},
   /* おとも（となりに ならぶ なかま） */
   {id:"m_ham",     kind:"mate", emoji:"🐹", name:"ころころハムスター", r:1},
   {id:"m_dolphin", kind:"mate", emoji:"🐬", name:"そらとぶイルカ",     r:1},
   {id:"m_bfly",    kind:"mate", emoji:"🦋", name:"ひかりチョウ",       r:1},
+  {id:"m_turtle",  kind:"mate", emoji:"🐢", name:"のんびりカメきち",   r:1},
+  {id:"m_frog",    kind:"mate", emoji:"🐸", name:"ぴょんたろう",       r:1},
+  {id:"m_penguin", kind:"mate", emoji:"🐧", name:"よちよちペンギン",   r:1},
   {id:"m_wolf",    kind:"mate", emoji:"🐺", name:"シルバーウルフ",     r:2},
   {id:"m_sloth",   kind:"mate", emoji:"🦥", name:"のんびりナマケモン", r:2},
+  {id:"m_fox",     kind:"mate", emoji:"🦊", name:"コンコンきつね",     r:2},
+  {id:"m_owl",     kind:"mate", emoji:"🦉", name:"ものしりフクロウ",   r:2},
+  {id:"m_octo",    kind:"mate", emoji:"🐙", name:"たこはかせ",         r:2},
   {id:"m_lion",    kind:"mate", emoji:"🦁", name:"キングレオ",         r:3},
+  {id:"m_tiger",   kind:"mate", emoji:"🐯", name:"かみなりタイガー",   r:3},
+  {id:"m_eagle",   kind:"mate", emoji:"🦅", name:"そらの おうじゃワシ", r:3},
+  {id:"m_shark",   kind:"mate", emoji:"🦈", name:"あばれザメ",         r:3},
   {id:"m_uni",     kind:"mate", emoji:"🦄", name:"ミラクルユニコーン", r:4},
+  {id:"m_dragon",  kind:"mate", emoji:"🐉", name:"まぼろしのドラゴン", r:4},
+  {id:"m_peacock", kind:"mate", emoji:"🦚", name:"ごうかクジャク",     r:4},
 ];
 function gachaItemById(id){ return GACHA_ITEMS.find(x=>x.id===id); }
 function ownsGachaItem(it){ return (it.kind==="head" ? D.skins : D.mates).includes(it.id); }
@@ -3084,7 +3103,17 @@ function gachaPull(){
   const pool=GACHA_ITEMS.filter(x=>x.r===r);
   const item=pool[Math.floor(Math.random()*pool.length)];
   const dup=ownsGachaItem(item);
-  if(!dup){ (item.kind==="head" ? D.skins : D.mates).push(item.id); }
+  let compBonus=0;
+  if(!dup){
+    (item.kind==="head" ? D.skins : D.mates).push(item.id);
+    /* おなじ★を ぜんぶ あつめたら 一度だけ コンプリートボーナス */
+    if(!Array.isArray(D.rarityBonus)) D.rarityBonus=[];
+    if(!D.rarityBonus.includes(r) && GACHA_ITEMS.filter(x=>x.r===r).every(x=>ownsGachaItem(x))){
+      D.rarityBonus.push(r);
+      compBonus=RARITY[r].comp;
+      addGems(compBonus);
+    }
+  }
   D.gachaPity = (r>=3) ? 0 : D.gachaPity+1;
   if(dup) addGems(RARITY[r].refund);
   saveData(); renderGacha(); renderHeader();
@@ -3092,18 +3121,19 @@ function gachaPull(){
   const egg=document.getElementById("gachaEgg");
   egg.classList.remove("roll"); void egg.offsetWidth; egg.classList.add("roll");
   sfx("gachaRoll");
-  setTimeout(()=>{ gachaBusy=false; showGachaResult(item, dup); }, 1150);
+  setTimeout(()=>{ gachaBusy=false; showGachaResult(item, dup, compBonus); }, 1150);
 }
-function showGachaResult(item, dup){
+function showGachaResult(item, dup, compBonus){
   const meta=RARITY[item.r];
   const st=document.getElementById("grStars");
   st.textContent=starsOf(item.r); st.style.color=meta.col;
   document.getElementById("grEmoji").textContent=item.emoji;
   const nm=document.getElementById("grName");
   nm.textContent=item.name; nm.style.color=meta.col;
-  document.getElementById("grMsg").innerHTML =
-    meta.name+"（"+(item.kind==="head"?"あたまの スキン":"おとも")+"）<br>" +
+  let resMsg = meta.name+"（"+(item.kind==="head"?"あたまの スキン":"おとも")+"）<br>" +
     (dup ? "ダブり！ 💎+"+meta.refund+" に へんしん！" : "はじめての なかまいり！ きせかえは「じぶんの ステータス」から");
+  if(compBonus) resMsg+="<br>🎊 "+starsOf(item.r)+" コンプリート！ ボーナス 💎+"+compBonus+"！";
+  document.getElementById("grMsg").innerHTML=resMsg;
   document.getElementById("grAgain").style.display = D.gems>=GACHA_COST ? "block" : "none";
   document.getElementById("gachaResult").classList.add("show");
   sfx(item.r>=3 ? "rare" : "bonus");
@@ -3222,12 +3252,9 @@ function winBattle(){
   const bonus=(10+enemy.lv*3)*(curRange.boss?2:1);
   gainedXp+=bonus; addXp(bonus);
   const gwin=addGems(curRange.boss?12:6);
-  /* 6年生：トロフィーロード（ボスは2こ） */
-  let trophyMsg="";
-  if(D.grade===6){
-    D.trophies+=(curRange.boss?2:1);
-    trophyMsg=trophyRoadCheck();
-  }
+  /* トロフィーロード（全学年・ボスは2こ） */
+  D.trophies+=(curRange.boss?2:1);
+  const trophyMsg=trophyRoadCheck();
   saveData(); renderHeader();
   sfx("win");
   /* なかまを おむかえ：
@@ -3259,11 +3286,9 @@ function winBattle(){
     rb.innerHTML=`<div class="o-msg">…なかまの けはいが した！<br>かちつづけると なかまが やってくるよ。</div>`;
   }
   let msg="けいけんち +"+gainedXp+" ／ 💎+"+gwin+" ／ さいだいれんぞく "+maxStreak;
-  if(D.grade===6){
-    const info=nextTrophyInfo();
-    msg+="<br>🏆 +"+(curRange.boss?2:1)+"（ぜんぶで "+D.trophies+"）　つぎの "+info.label+" まで あと"+info.need+"勝";
-    if(trophyMsg) msg+=trophyMsg;
-  }
+  const tInfo=nextTrophyInfo();
+  msg+="<br>🏆 +"+(curRange.boss?2:1)+"（ぜんぶで "+D.trophies+"）　つぎの "+tInfo.label+" まで あと"+tInfo.need+"かい";
+  if(trophyMsg) msg+=trophyMsg;
   const evo=winsToNextEvo();
   if(evo) msg+="<br>✨ "+evo.ns.emoji+"「"+evo.ns.name+"」まで あと "+evo.wins+"かい！";
   if(D.missions && D.missions.list.some(m=>m.done && !m.claimed)){
