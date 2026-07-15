@@ -127,6 +127,10 @@
     45%{transform:translate(-8px,4px);} 62%{transform:translate(6px,-3px);} 82%{transform:translate(-3px,2px);}}
   /* 相棒（バトルに いっしょに 出る） */
   .ally-wrap{position:absolute; left:14px; bottom:62px; z-index:2;}
+  .enemy-sprite.zukkoke{animation:zukkoke .85s ease;}
+  @keyframes zukkoke{0%{transform:rotate(0) translateY(0);} 25%{transform:rotate(-14deg) translateY(-10px);}
+    55%{transform:rotate(78deg) translateY(14px) scale(.95);} 75%{transform:rotate(70deg) translateY(11px);}
+    100%{transform:rotate(0) translateY(0);}}
   .ally-wrap.lunge{animation:lunge .55s ease;}
   @keyframes lunge{0%{transform:translate(0,0);} 35%{transform:translate(110px,-10px) scale(1.15);}
     70%{transform:translate(24px,-2px);} 100%{transform:translate(0,0);}}
@@ -381,6 +385,15 @@
     <p class="secsub" style="margin-top:10px;">えらばなかった コースも あとで なかまに できるよ<br>（Lv.10 と ☆☆☆☆で かいほう）</p>
   </section>
 
+  <!-- きろくルーム（6年生：トロフィーロード・単元ランク・自分の記録） -->
+  <section class="screen" id="scRecords">
+    <div style="display:flex; justify-content:flex-start;"><button class="backbtn" onclick="goHome()">← もどる</button></div>
+    <div class="sectitle">🏆 きろくルーム</div>
+    <div class="card" id="recTrophy"></div>
+    <div class="card" id="recRanks"></div>
+    <div class="card" id="recStats"></div>
+  </section>
+
   <!-- ホーム -->
   <section class="screen active" id="scHome">
     <h1>スタディクエスト</h1>
@@ -390,6 +403,7 @@
       <div class="buddy-caption" id="homeCaption">たまご</div>
       <div class="buddy-sub" id="homeSub">もんだいを といて そだてよう！</div>
       <div class="streakline" id="homeStreak"></div>
+      <div class="streakline" id="homeTrophy" onclick="openRecords()" style="display:none; cursor:pointer;"></div>
       <div class="evoline" id="homeEvo"></div>
       <button class="btn adventure" onclick="show('scSubject'); renderSubjects();"><span class="menu-emoji">⚔️</span>ぼうけんに でる</button>
       <button class="btn pullbtn" onclick="openGacha();"><span class="menu-emoji">🥚</span>タマゴガチャ</button>
@@ -996,7 +1010,12 @@ function loadData(){
 /* クラウドから来たデータも ローカルのデータも 同じ整形を通す */
 function normalizeSave(d){
   d=Object.assign({lv:1, xp:0, total:0, collected:{}, log:[], sessions:[], lastLogin:"", loginStreak:0, loginDays:0, bestStreak:0, missions:null, review:null, sound:true,
-    gems:0, skins:[], mates:[], equip:{head:null, mate:null}, gachaPity:0, pace:"std", checks:[], course:null, courses:[], kmode:"", dayWins:null, grade:3}, d);
+    gems:0, skins:[], mates:[], equip:{head:null, mate:null}, gachaPity:0, pace:"std", checks:[], course:null, courses:[], kmode:"", dayWins:null, grade:3,
+    trophies:0, trophyIdx:0, trophyOver:0, titles:[]}, d);
+  if(typeof d.trophies!=="number") d.trophies=0;
+  if(typeof d.trophyIdx!=="number") d.trophyIdx=0;
+  if(typeof d.trophyOver!=="number") d.trophyOver=0;
+  if(!Array.isArray(d.titles)) d.titles=[];
   if(![1,3,6].includes(d.grade)) d.grade=3;   /* 学年（引き出し）。むかしのデータは 3年生あつかい */
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
@@ -1023,9 +1042,11 @@ function normalizeSave(d){
 }
 /* 記録：1問ごとのログと、1回の集中（バトル）ごとのセッション */
 function ymd(dt){ return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0"); }
-function logAnswer(subId, cat, ok, ms){
-  /* p＝この集中（セッション）の なん問目か。集中の続き方の分析に使う */
-  D.log.push({t:Date.now(), d:ymd(new Date()), h:new Date().getHours(), sub:subId, cat:cat, ok:ok?1:0, ms:ms, p:sessCount});
+function logAnswer(subId, cat, ok, ms, unit){
+  /* p＝この集中（セッション）の なん問目か。集中の続き方の分析に使う。u＝算数の単元（単元ランク用） */
+  const rec={t:Date.now(), d:ymd(new Date()), h:new Date().getHours(), sub:subId, cat:cat, ok:ok?1:0, ms:ms, p:sessCount};
+  if(unit) rec.u=unit;
+  D.log.push(rec);
   if(D.log.length>3000) D.log=D.log.slice(-3000);
 }
 function endSession(result){
@@ -1068,6 +1089,16 @@ function renderHome(){
   const cp=currentPlayer();
   document.getElementById("homePlayerName").textContent = cp ? cp.name : "";
   document.getElementById("homeStreak").textContent = (D.loginStreak>=2) ? "🔥 "+D.loginStreak+"日 れんぞくで あそんでいるよ！" : "";
+  /* 6年生：トロフィーロードの現在地（タップで きろくルーム） */
+  const tr=document.getElementById("homeTrophy");
+  if(D.grade===6){
+    const info=nextTrophyInfo();
+    const title=currentTitle();
+    tr.textContent="🏆 "+D.trophies+(title?"　「"+title+"」":"")+"　つぎの "+info.label+" まで あと"+info.need+"勝 ▶";
+    tr.style.display="";
+  }else{
+    tr.style.display="none";
+  }
   const evo=winsToNextEvo();
   document.getElementById("homeEvo").textContent = evo ? `✨ ${evo.ns.emoji}「${evo.ns.name}」まで あと ${evo.wins}かい かてば しんか！` : "";
   renderMissions();
@@ -2436,13 +2467,14 @@ function startBattle(sub, range, mode){
   const isBoss=!!range.boss;
   const base = isBoss ? BOSS : ENEMIES[Math.floor(Math.random()*ENEMIES.length)];
   const elv = isBoss ? D.lv+2 : Math.max(1, D.lv+rnd(-1,1));
-  const hpMax = isBoss ? 150+elv*12 : 90+elv*8;
+  let hpMax = isBoss ? 150+elv*12 : 90+elv*8;
+  if(D.grade===1) hpMax=Math.round(hpMax*0.7);   /* 1年生：集中がつづく長さに合わせて 1バトル短め */
   enemy={e:base.e, n:base.n, lv:elv, hp:hpMax, hpMax:hpMax};
   hearts=3; streak=0; maxStreak=0; gainedXp=0; correctCount=0; battleOver=false;
   sessActive=true; sessStart=Date.now(); sessCount=0; sessSub=sub.id;
   document.getElementById("enemyName").textContent="Lv."+enemy.lv+" "+enemy.n;
   const es=document.getElementById("enemySprite");
-  es.classList.remove("down"); es.textContent=enemy.e;
+  es.classList.remove("down","zukkoke"); es.textContent=enemy.e;
   document.getElementById("allySprite").textContent=stageFor(D.lv).emoji;   /* 相棒も 出げき */
   document.getElementById("allyWrap").className="ally-wrap";
   document.getElementById("ehpMax").textContent=enemy.hpMax;
@@ -2556,7 +2588,7 @@ function pickChoice(btn,val){
 function judge(ok, ans){
   if(battleOver) return;
   D.total++; sessCount++;
-  logAnswer(curSub.id, curCat, ok, answerMs);
+  logAnswer(curSub.id, curCat, ok, answerMs, curQ && curQ.unit);
   missionEvent("answer");
   missionEvent(curSub.id==="math" ? "answer_math" : "answer_kanji");
   if(ok){
@@ -2582,6 +2614,7 @@ function judge(ok, ans){
     allyLunge();
     showDamage(dmg, crit);
     hitEnemy();
+    if(D.grade===1) enemyZukkoke();   /* 1年生：てきが おおげさに ずっこける */
     joltScreen(crit);
     renderHP();
     showFB(true, streak, crit);
@@ -2597,7 +2630,7 @@ function judge(ok, ans){
     const he=document.getElementById("hearts");
     he.classList.remove("owwie"); void he.offsetWidth; he.classList.add("owwie");
     allySad();
-    joltScreen(true);
+    joltScreen(D.grade!==1);   /* 1年生は まちがえたときの ゆれを マイルドに */
     showFB(false, ans);
     if(hearts<=0){ battleOver=true; setTimeout(loseBattle, 1400); return; }
     setTimeout(nextQ, 1400);
@@ -2616,6 +2649,11 @@ function joltScreen(big){
   const cls=big?"joltbig":"jolt";
   app.classList.remove("jolt","joltbig"); void app.offsetWidth; app.classList.add(cls);
 }
+function enemyZukkoke(){
+  const es=document.getElementById("enemySprite");
+  es.classList.remove("zukkoke"); void es.offsetWidth; es.classList.add("zukkoke");
+  sfx("zukkoke");
+}
 function allyLunge(){
   const w=document.getElementById("allyWrap");
   w.classList.remove("lunge","sad"); void w.offsetWidth; w.classList.add("lunge");
@@ -2624,15 +2662,99 @@ function allySad(){
   const w=document.getElementById("allyWrap");
   w.classList.remove("lunge","sad"); void w.offsetWidth; w.classList.add("sad");
 }
-/* ホームの相棒：タップすると よろこぶ */
+/* ===== トロフィーロード（6年生）：勝つたびに🏆が貯まり 一本道のごほうびが順に開く ===== */
+const TROPHY_ROAD=[
+  {t:1,  gems:20},              {t:3,  title:"かけだし冒険者"},
+  {t:5,  gems:30},              {t:8,  title:"ルーキーハンター"},
+  {t:12, gems:40},              {t:16, title:"熟練ハンター"},
+  {t:20, gems:50},              {t:25, title:"エリート"},
+  {t:30, gems:60},              {t:36, title:"マスター"},
+  {t:42, gems:80},              {t:50, title:"グランドマスター"},
+  {t:60, gems:100},             {t:75, title:"レジェンド"},
+  {t:100, gems:150, title:"伝説の勇者"},
+];
+function trophyRoadCheck(){
+  /* 通過したごほうびを その場で付与して 勝利画面用メッセージを返す */
+  let msg="";
+  while(D.trophyIdx<TROPHY_ROAD.length && D.trophies>=TROPHY_ROAD[D.trophyIdx].t){
+    const m=TROPHY_ROAD[D.trophyIdx];
+    if(m.gems){ addGems(m.gems); msg+="<br>🏆 ロードのごほうび！ 💎+"+m.gems; }
+    if(m.title){ if(!D.titles.includes(m.title)) D.titles.push(m.title); msg+="<br>🏆 称号かくとく「"+m.title+"」"; }
+    D.trophyIdx++;
+  }
+  /* ロードを走りきったら 10勝ごとに💎30（エンドレス） */
+  if(D.trophyIdx>=TROPHY_ROAD.length){
+    const over=Math.max(0, Math.floor((D.trophies-100)/10));
+    while(D.trophyOver<over){ D.trophyOver++; addGems(30); msg+="<br>🏆 ロードボーナス！ 💎+30"; }
+  }
+  return msg;
+}
+function nextTrophyInfo(){
+  if(D.trophyIdx<TROPHY_ROAD.length){
+    const m=TROPHY_ROAD[D.trophyIdx];
+    return {need:Math.max(1,m.t-D.trophies), label:m.gems?("💎"+m.gems):("称号「"+m.title+"」")};
+  }
+  const nextT=100+(D.trophyOver+1)*10;
+  return {need:Math.max(1,nextT-D.trophies), label:"💎30"};
+}
+function currentTitle(){ return D.titles.length ? D.titles[D.titles.length-1] : ""; }
+/* ===== 単元ランク（6年生）：単元ごとに 正解で育つランク ===== */
+function unitRank(uid){
+  let ok=0, n=0;
+  (D.log||[]).forEach(l=>{ if(l.sub==="math" && l.u===uid){ n++; ok+=l.ok; } });
+  const pts=Math.max(0, ok*2-(n-ok));
+  return {rank:Math.min(20, 1+Math.floor(pts/8)), n:n, ok:ok, pts:pts};
+}
+function rankBadge(r){ return r>=20?"👑":r>=15?"💎":r>=10?"🥇":r>=5?"🥈":"🥉"; }
+function rankColor(r){ return r>=20?"#ef4444":r>=15?"#8b5cf6":r>=10?"#f59e0b":r>=5?"#94a3b8":"#cd7f32"; }
+function openRecords(){
+  /* トロフィー＋つぎのごほうび */
+  const info=nextTrophyInfo();
+  const title=currentTitle();
+  let th=`<div class="rep-h">🏆 トロフィーロード</div>
+    <div class="stat"><span>トロフィー</span><span class="v">🏆 ${D.trophies}</span></div>
+    ${title?`<div class="stat"><span>称号</span><span class="v">「${title}」</span></div>`:""}
+    <div class="stat"><span>つぎのごほうび</span><span class="v">${info.label}（あと${info.need}勝）</span></div>`;
+  const coming=TROPHY_ROAD.slice(D.trophyIdx, D.trophyIdx+3);
+  if(coming.length){
+    th+='<div class="secsub" style="margin-top:8px;">この先のロード</div>';
+    coming.forEach(m=>{ th+=`<div class="stat"><span>🏆${m.t}</span><span class="v">${m.gems?"💎"+m.gems:""}${m.title?" 称号「"+m.title+"」":""}</span></div>`; });
+  }
+  document.getElementById("recTrophy").innerHTML=th;
+  /* 単元ランク */
+  let rh='<div class="rep-h">🎖️ 単元ランク</div>';
+  const units=taughtMathUnits();
+  if(!units.length) rh+='<div class="secsub">算数の問題を とくと ランクが 育つよ</div>';
+  units.forEach(u=>{
+    const r=unitRank(u.id);
+    rh+=barRow(rankBadge(r.rank)+" "+u.name, r.rank/20*100, "ランク"+r.rank, rankColor(r.rank));
+  });
+  rh+='<div class="secsub" style="margin-top:6px;">正解すると 上がる。ランクの低い単元が「のびしろ」！</div>';
+  document.getElementById("recRanks").innerHTML=rh;
+  /* 自分の記録 */
+  const log=D.log||[];
+  const okN=log.reduce((s,e)=>s+e.ok,0);
+  const acc=log.length?Math.round(okN/log.length*100):0;
+  const msArr=log.filter(l=>l.ms>0).map(l=>l.ms);
+  const avgSec=msArr.length?(msArr.reduce((a,b)=>a+b,0)/msArr.length/1000):0;
+  document.getElementById("recStats").innerHTML=`<div class="rep-h">📈 自分の記録</div>
+    <div class="stat"><span>といた問題</span><span class="v">${D.total}問</span></div>
+    <div class="stat"><span>正解率</span><span class="v">${acc}%</span></div>
+    <div class="stat"><span>最高連続正解</span><span class="v">${D.bestStreak}連続</span></div>
+    <div class="stat"><span>平均スピード</span><span class="v">${avgSec?avgSec.toFixed(1)+"秒":"—"}</span></div>`;
+  show("scRecords");
+}
+/* ホームの相棒：タップすると よろこぶ（1年生は ボケ全開） */
 const BUDDY_LINES=["えへへ、くすぐったい！","きょうも いっしょに がんばろう！","ぼうけんに いこうよ！","なでなで うれしい！","もんだい とくの たのしいね！","きみが いちばんの あいぼうだよ！"];
+const BUDDY_LINES_G1=["わははは！ くすぐったいってば！","きょうも ボケて いくぞ〜！","おなか すいたなあ…もぐもぐ","ぼく、じつは つよいんだぜ？ たぶん！","へへーん、なでても なにも でないよ〜","あれ？ きょう なんようびだっけ？","ぷっぷくぷ〜！"];
 let buddyTapTimer=null;
 function buddyTap(){
   const b=document.querySelector("#scHome .buddy-big");
   b.classList.remove("bounce"); void b.offsetWidth; b.classList.add("bounce");
   sfx("assist");
   const subEl=document.getElementById("homeSub");
-  subEl.textContent=BUDDY_LINES[rnd(0,BUDDY_LINES.length-1)];
+  const lines=(D.grade===1)?BUDDY_LINES_G1:BUDDY_LINES;
+  subEl.textContent=lines[rnd(0,lines.length-1)];
   clearTimeout(buddyTapTimer);
   buddyTapTimer=setTimeout(()=>{ subEl.textContent=stageFor(D.lv).msg; }, 2000);
 }
@@ -2842,6 +2964,7 @@ function sfx(name){
       bonus(){ [880,1175,1568].forEach((f,i)=>beep(f,t+i*0.08,0.12,"sine",0.13)); },
       assist(){ beep(740,t,0.08,"sine",0.1); beep(988,t+0.08,0.12,"sine",0.1); },
       gachaRoll(){ for(let i=0;i<7;i++) beep(300+i*60, t+i*0.14, 0.07, "square", 0.07); },
+      zukkoke(){ beep(880,t,0.09,"square",0.11); beep(660,t+0.1,0.09,"square",0.11); beep(440,t+0.2,0.09,"square",0.11); beep(233,t+0.32,0.4,"sawtooth",0.1,117); },
       rare(){ [659,784,988,1319,1568].forEach((f,i)=>beep(f,t+i*0.1,0.14,"triangle",0.15)); beep(2093,t+0.55,0.5,"triangle",0.13); },
     };
     (bank[name]||function(){})();
@@ -3099,6 +3222,12 @@ function winBattle(){
   const bonus=(10+enemy.lv*3)*(curRange.boss?2:1);
   gainedXp+=bonus; addXp(bonus);
   const gwin=addGems(curRange.boss?12:6);
+  /* 6年生：トロフィーロード（ボスは2こ） */
+  let trophyMsg="";
+  if(D.grade===6){
+    D.trophies+=(curRange.boss?2:1);
+    trophyMsg=trophyRoadCheck();
+  }
   saveData(); renderHeader();
   sfx("win");
   /* なかまを おむかえ：
@@ -3130,6 +3259,11 @@ function winBattle(){
     rb.innerHTML=`<div class="o-msg">…なかまの けはいが した！<br>かちつづけると なかまが やってくるよ。</div>`;
   }
   let msg="けいけんち +"+gainedXp+" ／ 💎+"+gwin+" ／ さいだいれんぞく "+maxStreak;
+  if(D.grade===6){
+    const info=nextTrophyInfo();
+    msg+="<br>🏆 +"+(curRange.boss?2:1)+"（ぜんぶで "+D.trophies+"）　つぎの "+info.label+" まで あと"+info.need+"勝";
+    if(trophyMsg) msg+=trophyMsg;
+  }
   const evo=winsToNextEvo();
   if(evo) msg+="<br>✨ "+evo.ns.emoji+"「"+evo.ns.name+"」まで あと "+evo.wins+"かい！";
   if(D.missions && D.missions.list.some(m=>m.done && !m.claimed)){
@@ -3291,9 +3425,15 @@ function showFB(ok, extra, crit){
   if(ok){
     sfx(crit ? "crit" : "correct");
     big.textContent = crit ? "💥" : "⭕";
-    const cheers=["せいかい！","ナイス！","こうげき！","やるね！","ズバッ！"];
+    /* 学年で ほめことばの トーンを 切りかえる（1年=笑い／6年=記録） */
+    const CHEERS={
+      1:["せいかい！","てきが ずっこけた！","プップー！","なんちゃって〜！","きみ てんさい？！","わはは！ みごと！"],
+      3:["せいかい！","ナイス！","こうげき！","やるね！","ズバッ！"],
+      6:["正解","ナイス","その調子","確実に決めた","冴えてる"],
+    };
+    const cheers=CHEERS[D.grade]||CHEERS[3];
     let m=cheers[Math.floor(Math.random()*cheers.length)];
-    if(crit) m="💥 かいしんの いちげき！";
+    if(crit) m=(D.grade===6)?"💥 クリティカル！":"💥 かいしんの いちげき！";
     else if(extra>=2) m="🔥"+extra+"れんぞく！ "+m;
     msg.textContent=m; msg.style.color="#fff";
     confetti(crit?18:8);
