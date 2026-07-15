@@ -326,7 +326,7 @@
     <div class="row">
       <div class="buddy-mini" id="miniBuddy">🥚</div>
       <div class="lvwrap">
-        <div class="lvline"><span class="lv">Lv.<span id="lvNum">1</span></span><span class="gems">💎<span id="gemNum">0</span></span><span class="name" id="buddyName">たまご</span></div>
+        <div class="lvline"><span class="lv">🏅ランク<span id="lvNum">1</span></span><span class="gems">💎<span id="gemNum">0</span></span><span class="name" id="buddyName">たまご</span></div>
         <div class="xpbar"><div class="xpfill" id="xpFill"></div></div>
         <div class="xptext"><span id="xpNow">0</span> / <span id="xpNeed">100</span> けいけんち</div>
       </div>
@@ -659,6 +659,16 @@ const COURSES={
 function stagesOf(courseId){ return COURSES[courseId || D.course || "dragon"].stages; }
 function stageFor(lv){ let s=stagesOf()[0]; for(const st of stagesOf()){ if(lv>=st.lv) s=st; } return s; }
 function nextStage(lv){ for(const st of stagesOf()){ if(st.lv>lv) return st; } return null; }
+/* ===== あいぼうレベル（コースごとに べつ育ち） =====
+   ぼうけんランク（D.lv）＝本人の成長。敵の強さ・攻撃力・かいほう基準。引き継ぐ。
+   あいぼうレベル（D.buddy[コース].lv）＝しんか（見た目）の基準。新しい相棒は Lv.1 から育て直し */
+function curBuddy(){
+  if(!D.buddy || typeof D.buddy!=="object") D.buddy={};
+  const key=D.course||"dragon";
+  if(!D.buddy[key]) D.buddy[key]={lv:1, xp:0};
+  return D.buddy[key];
+}
+function buddyLv(){ return curBuddy().lv; }
 
 /* ============ 教科・範囲・なかま ============ */
 const SUBJECTS = [
@@ -1041,6 +1051,15 @@ function normalizeSave(d){
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
   if(!["fast","std","slow"].includes(d.pace)) d.pace="std";
   if(!d.uprog || typeof d.uprog!=="object" || Array.isArray(d.uprog)) d.uprog={};
+  /* あいぼうレベル：はじめての子と むかしのデータは「今のコース＝今のレベル」で引き継ぎ（損しない移行） */
+  if(!d.buddy || typeof d.buddy!=="object" || Array.isArray(d.buddy)) d.buddy={};
+  if(d.course && !d.buddy[d.course]) d.buddy[d.course]={lv:d.lv||1, xp:d.xp||0};
+  Object.keys(d.buddy).forEach(k=>{
+    const b=d.buddy[k];
+    if(!b || typeof b!=="object"){ d.buddy[k]={lv:1, xp:0}; return; }
+    if(typeof b.lv!=="number" || b.lv<1) b.lv=1;
+    if(typeof b.xp!=="number" || b.xp<0) b.xp=0;
+  });
   if(!Array.isArray(d.checks)) d.checks=[];
   if(typeof d.kmode!=="string") d.kmode="";
   /* 廃止した とき方（よみ4たく・かきとり）が おぼえられていたら 文章版に 置きかえ */
@@ -1088,7 +1107,7 @@ function xpNeeded(lv){ return 60 + lv*40; }
 
 /* ============ 描画：ヘッダー・ホーム ============ */
 function renderHeader(){
-  const st=stageFor(D.lv), need=xpNeeded(D.lv);
+  const st=stageFor(buddyLv()), need=xpNeeded(D.lv);
   document.getElementById("lvNum").textContent=D.lv;
   document.getElementById("gemNum").textContent=D.gems;
   document.getElementById("buddyName").textContent=st.name;
@@ -1098,9 +1117,9 @@ function renderHeader(){
   document.getElementById("xpFill").style.width=Math.min(100,(D.xp/need)*100)+"%";
 }
 function renderHome(){
-  const st=stageFor(D.lv);
+  const st=stageFor(buddyLv());
   document.getElementById("homeBuddy").textContent=st.emoji;
-  document.getElementById("homeCaption").textContent=st.name+"（Lv."+D.lv+"）";
+  document.getElementById("homeCaption").textContent=st.name+"（Lv."+buddyLv()+"）";
   document.getElementById("homeSub").textContent=st.msg;
   document.getElementById("totalCount").textContent=D.total;
   document.getElementById("homeDex").textContent=collectedCount();
@@ -1121,12 +1140,13 @@ function renderHome(){
   renderMissions();
   kanjifyDom(document.getElementById("scHome"));
 }
-/* つぎの進化まで「あと何回勝てばいいか」のざっくり計算（1勝≒110XPで見つもり） */
+/* つぎの進化まで「あと何回勝てばいいか」のざっくり計算（1勝≒110XPで見つもり・あいぼうレベル基準） */
 function winsToNextEvo(){
-  const ns=nextStage(D.lv);
+  const b=curBuddy();
+  const ns=nextStage(b.lv);
   if(!ns) return null;
-  let xpTo=xpNeeded(D.lv)-D.xp;
-  for(let l=D.lv+1; l<ns.lv; l++) xpTo+=xpNeeded(l);
+  let xpTo=xpNeeded(b.lv)-b.xp;
+  for(let l=b.lv+1; l<ns.lv; l++) xpTo+=xpNeeded(l);
   return {ns:ns, wins:Math.max(1, Math.ceil(xpTo/110))};
 }
 
@@ -3261,7 +3281,7 @@ function startBattle(sub, range, mode){
   document.getElementById("enemyName").textContent="Lv."+enemy.lv+" "+enemy.n;
   const es=document.getElementById("enemySprite");
   es.classList.remove("down","zukkoke"); es.textContent=enemy.e;
-  document.getElementById("allySprite").textContent=stageFor(D.lv).emoji;   /* 相棒も 出げき */
+  document.getElementById("allySprite").textContent=stageFor(buddyLv()).emoji;   /* 相棒も 出げき */
   document.getElementById("allyWrap").className="ally-wrap";
   document.getElementById("ehpMax").textContent=enemy.hpMax;
   renderHP(); renderHearts(); updateCombo();
@@ -3546,7 +3566,7 @@ function buddyTap(){
   const lines=(D.grade===1)?BUDDY_LINES_G1:BUDDY_LINES;
   subEl.textContent=lines[rnd(0,lines.length-1)];
   clearTimeout(buddyTapTimer);
-  buddyTapTimer=setTimeout(()=>{ subEl.textContent=stageFor(D.lv).msg; }, 2000);
+  buddyTapTimer=setTimeout(()=>{ subEl.textContent=stageFor(buddyLv()).msg; }, 2000);
 }
 /* なかまの おうえんこうげき */
 function maybeAssist(){
@@ -3985,7 +4005,9 @@ function pickCourse(key){
   if(D.courses.includes(key)){ D.course=key; }
   else if(D.courses.length<unlockedCourseSlots()){ D.courses.push(key); D.course=key; }
   else return;
+  curBuddy();   /* はじめてのコースなら Lv.1 の あいぼうが うまれる */
   saveData(); sfx("correct");
+  renderHeader();
   openStatus();
 }
 function courseGridHtml(){
@@ -3994,12 +4016,14 @@ function courseGridHtml(){
     const c=COURSES[key];
     const owned=D.courses.includes(key), current=D.course===key;
     const pickable = owned || D.courses.length<unlockedCourseSlots();
-    const emoji=(function(){ let s=c.stages[0]; for(const st of c.stages){ if(D.lv>=st.lv) s=st; } return s; })().emoji;
+    /* コースごとの あいぼうレベルで 見た目が決まる（もっていない子は Lv.1 スタート） */
+    const blv=(D.buddy && D.buddy[key]) ? D.buddy[key].lv : 1;
+    const emoji=(function(){ let s=c.stages[0]; for(const st of c.stages){ if(blv>=st.lv) s=st; } return s; })().emoji;
     let sub;
-    if(current) sub="そうびちゅう";
-    else if(owned) sub="タップで こうたい";
-    else if(pickable) sub="タップで なかまに！";
-    else sub = D.lv<10 ? "Lv.10で かいほう" : "☆☆☆☆で かいほう";
+    if(current) sub="そうびちゅう（Lv."+blv+"）";
+    else if(owned) sub="Lv."+blv+"・タップで こうたい";
+    else if(pickable) sub="タップで なかまに！（Lv.1から）";
+    else sub = D.lv<10 ? "ランク10で かいほう" : "☆☆☆☆で かいほう";
     const cls="skincell"+(current?" eq":"")+(pickable?"":" lock");
     const click=pickable ? ` onclick="pickCourse('${key}')"` : "";
     cells+=`<div class="${cls}"${click}><div class="se">${pickable?emoji:"🔒"}</div>
@@ -4024,13 +4048,22 @@ function skinGridHtml(kind){
 }
 
 /* ============ 経験値・レベルアップ ============ */
-let pendingLevelups=[];
+let pendingLevelups=[];   /* あいぼうの レベルアップ（しんか演出は こちら基準） */
+let rankUps=0;            /* ぼうけんランクの上がった数（勝利画面で ひとこと知らせる用） */
 function addXp(xp){
   if(D.course==="sky") xp=Math.round(xp*1.1);   /* そらコース：けいけんち +10% */
+  /* ぼうけんランク（本人の成長。敵の強さ・かいほうの基準） */
   D.xp+=xp;
   while(D.xp>=xpNeeded(D.lv)){
     D.xp-=xpNeeded(D.lv); D.lv++;
-    pendingLevelups.push(D.lv);
+    rankUps++;
+  }
+  /* あいぼうレベル（コースごとに Lv.1 から育て直す たのしみ） */
+  const b=curBuddy();
+  b.xp+=xp;
+  while(b.xp>=xpNeeded(b.lv)){
+    b.xp-=xpNeeded(b.lv); b.lv++;
+    pendingLevelups.push(b.lv);
   }
   saveData(); renderHeader();
 }
@@ -4082,6 +4115,7 @@ function winBattle(){
   }
   let msg="けいけんち +"+gainedXp+" ／ 💎+"+gwin+" ／ さいだいれんぞく "+maxStreak;
   if(enemy.elite) msg="💪 ★つよてきに かった！ ごほうび アップ！<br>"+msg;
+  if(rankUps){ msg+="<br>🏅 ぼうけんランクが "+D.lv+" に 上がった！"; rankUps=0; }
   const tInfo=nextTrophyInfo();
   msg+="<br>🏆 +"+(curRange.boss?2:1)+"（ぜんぶで "+D.trophies+"）　つぎの "+tInfo.label+" まで あと"+tInfo.need+"かい";
   if(trophyMsg) msg+=trophyMsg;
@@ -4099,7 +4133,7 @@ function maybeDayDone(next){
   /* 1日3勝したら「だいぼうけん」演出を1回だけ見せる。next=そのあとの行き先 */
   if(D.dayWins && D.dayWins.n>=3 && !D.dayWins.shown){
     D.dayWins.shown=true; saveData();
-    const st=stageFor(D.lv);
+    const st=stageFor(buddyLv());
     document.getElementById("ddEmoji").textContent=st.emoji;
     document.getElementById("ddMsg").innerHTML=
       "きょうは "+D.dayWins.n+"かいも かった！<br>"+st.name+"も おなかいっぱい だいまんぞく！<br>また あした あそぼうね。";
@@ -4688,6 +4722,7 @@ function checkLoginBonus(){
   const idx=(D.loginStreak-1)%7;
   const reward=LOGIN_REWARDS[idx];
   addXp(reward.xp);                              // saveData と レベルアップ判定を含む
+  rankUps=0;                                     // ログインボーナスでのランクアップは 静かに（勝利画面で誤表示しない）
   saveData();
   showLoginBonus(reward, idx);
 }
@@ -4714,8 +4749,9 @@ function closeLoginBonus(){
 
 /* ============ じぶんの ステータス ============ */
 function openStatus(){
-  const st=stageFor(D.lv), need=xpNeeded(D.lv), ns=nextStage(D.lv);
-  const pct=Math.min(100,Math.round(D.xp/need*100));
+  const b=curBuddy();
+  const st=stageFor(b.lv), need=xpNeeded(b.lv), ns=nextStage(b.lv);
+  const pct=Math.min(100,Math.round(b.xp/need*100));
   const log=D.log||[];
   const totalOk=log.reduce((s,e)=>s+e.ok,0);
   const acc=log.length?Math.round(totalOk/log.length*100):0;
@@ -4726,14 +4762,14 @@ function openStatus(){
     <div class="card" style="text-align:center;">
       <div class="buddy-big"><span>${st.emoji}</span><span class="acc-hat">${equippedEmoji("head")}</span><span class="acc-mate">${equippedEmoji("mate")}</span></div>
       <div class="buddy-caption">${st.name}</div>
-      <div class="buddy-sub">Lv.${D.lv}</div>
+      <div class="buddy-sub">あいぼう Lv.${b.lv}</div>
       <div class="xpbar" style="margin-top:12px;"><div class="xpfill" style="width:${pct}%"></div></div>
-      <div style="font-size:12px;color:#627d98;margin-top:5px;">つぎの レベルまで けいけんち あと ${Math.max(0,need-D.xp)}</div>
+      <div style="font-size:12px;color:#627d98;margin-top:5px;">つぎの レベルまで けいけんち あと ${Math.max(0,need-b.xp)}</div>
       ${evoLine}
     </div>
     <div class="card">
       <div class="tiles">
-        <div class="tile"><div class="tv">${D.lv}</div><div class="tl">レベル</div></div>
+        <div class="tile"><div class="tv">${D.lv}</div><div class="tl">ぼうけんランク</div></div>
         <div class="tile"><div class="tv">${D.total}</div><div class="tl">といた もんだい</div></div>
         <div class="tile"><div class="tv">${collectedCount()}/${totalMonsters()}</div><div class="tl">なかま</div></div>
       </div>
