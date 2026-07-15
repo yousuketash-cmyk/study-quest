@@ -367,7 +367,7 @@
       <div id="gradePick" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
         <button class="pacebtn" data-g="1" onclick="pickGrade(1)">1ねんせい</button>
         <button class="pacebtn on" data-g="3" onclick="pickGrade(3)">3ねんせい</button>
-        <button class="pacebtn" data-g="6" disabled style="opacity:.45;">6ねんせい<br><small>じゅんびちゅう</small></button>
+        <button class="pacebtn" data-g="6" onclick="pickGrade(6)">6ねんせい</button>
       </div>
       <button class="btn adventure" onclick="createPlayer()"><span class="menu-emoji">🎒</span>これで はじめる！</button>
     </div>
@@ -1926,6 +1926,191 @@ const MOJI_G1={
          ["ほし","⭐"],["つき","🌙"],["やま","⛰️"],["はな","🌸"]],
 };
 
+/* ============ 6年生の引き出し ============
+   啓林館「わくわく算数6」令和6年度版 年間指導計画案（3学期制）の単元順に合わせている。
+   分数・比・面積など 整数で答えられない問題は えらぶ式（qc） */
+function fgcd(a,b){ return b ? fgcd(b, a%b) : a; }
+function fracStr(n,d){ const g=fgcd(n,d); n/=g; d/=g; return (d===1) ? ""+n : n+"/"+d; }
+function fracVal(s){ const p=String(s).split("/"); return (p.length===2) ? p[0]/p[1] : +s; }
+/* n/d が正解の 4択をつくる（まちがい選択肢は 値がちがうものだけ） */
+function fracQ(text, n, d, cat){
+  const right=fracStr(n,d), val=n/d, set=new Set([right]);
+  const cands=[fracStr(d,n), n+"/"+d, fracStr(n*2,d), fracStr(n,d*2), fracStr(n+d,d), fracStr(Math.max(1,n-1),d), fracStr(n,d+1)];
+  for(const c of cands){ if(set.size>=4) break; if(!c || set.has(c)) continue; if(Math.abs(fracVal(c)-val)<1e-9) continue; set.add(c); }
+  let g=0;
+  while(set.size<4 && g++<60){ const c=fracStr(rnd(1,9),rnd(2,9)); if(!set.has(c) && Math.abs(fracVal(c)-val)>1e-9) set.add(c); }
+  return qc(text, right, [...set], cat||"frac");
+}
+const MATH_UNITS_G6=[
+  {id:"g6u1", name:"対称な図形", term:1, s:[4,10], gen(){
+    if(Math.random()<0.5){
+      const sh=pick([["正三角形",3],["正方形",4],["正五角形",5],["正六角形",6],["長方形",2],["ひし形",2]]);
+      return q(sh[0]+"の 対称の軸は 何本？", sh[1], "zu"); }
+    const right=pick(["平行四辺形","長方形","ひし形","正六角形"]);
+    const wrongs=shuffle(["正三角形","正五角形","台形"].slice());
+    return qc("次のうち 点対称な図形は どれ？", right, [right].concat(wrongs), "zu"); }},
+  {id:"g6u2", name:"文字と式", term:1, s:[4,25], gen(){
+    const v=rnd(1,3);
+    if(v===1){ const x=rnd(3,9), a=rnd(3,9); return q("x × "+a+" ＝ "+(x*a)+"　x は いくつ？", x, "shiki"); }
+    if(v===2){ const x=rnd(5,40), a=rnd(3,30); return q("x ＋ "+a+" ＝ "+(x+a)+"　x は いくつ？", x, "shiki"); }
+    const x=rnd(2,9)*rnd(2,5), a=rnd(2,5);
+    return q("x ÷ "+a+" ＝ "+(x/a)+"　x は いくつ？", x, "shiki"); },
+    bun(){
+      const a=rnd(3,8);
+      const right="x × "+a;
+      return qc("1こ x 円の りんごを "+a+"こ 買ったときの 代金を 式に すると？", right,
+        [right, "x ＋ "+a, "x ÷ "+a, a+" ÷ x"], "shiki"); }},
+  {id:"g6u3", name:"分数×整数・分数÷整数", term:1, s:[5,10], gen(){
+    if(Math.random()<0.5){ const d=rnd(3,9), n=rnd(1,d-1), c=rnd(2,5); return fracQ(n+"/"+d+" × "+c, n*c, d); }
+    const d=rnd(2,7), n=rnd(1,d-1), c=rnd(2,5); return fracQ(n+"/"+d+" ÷ "+c, n, d*c); }},
+  {id:"g6u4", name:"分数×分数", term:1, s:[5,20], gen(){
+    const b=rnd(2,7), a=rnd(1,b-1), d=rnd(2,7), c=rnd(1,d-1);
+    return fracQ(a+"/"+b+" × "+c+"/"+d, a*c, b*d); },
+    bun(){
+      const b=rnd(3,5), a=rnd(1,b-1), d=rnd(3,5), c=rnd(1,d-1);
+      return fracQ("1mの 重さが "+a+"/"+b+" kgの ぼう。"+c+"/"+d+" mの 重さは 何kg？", a*c, b*d); }},
+  {id:"g6u5", name:"分数÷分数", term:1, s:[6,10], gen(){
+    if(Math.random()<0.25){ const b=rnd(2,7), a=rnd(1,b-1); return fracQ(a+"/"+b+" の 逆数は？", b, a); }
+    const b=rnd(2,7), a=rnd(1,b-1), d=rnd(2,7), c=rnd(1,d-1);
+    return fracQ(a+"/"+b+" ÷ "+c+"/"+d, a*d, b*c); },
+    bun(){
+      const b=rnd(3,5), a=rnd(1,b-1), d=rnd(3,5), c=rnd(1,d-1);
+      return fracQ(a+"/"+b+" mの ホースの 重さが "+c+"/"+d+" kg。1mの 重さは 何kg？", c*b, d*a); }},
+  {id:"g6u6", name:"場合の数", term:1, s:[6,25], gen(){
+    const v=rnd(1,3);
+    if(v===1){ const n=pick([3,4]); return q(n+"人が 1列に ならぶ ならび方は ぜんぶで 何通り？", n===3?6:24, "baai"); }
+    if(v===2){ const n=pick([3,4,5,6]); return q(n+"チームから 2チームを えらぶ 組み合わせは 何通り？", n*(n-1)/2, "baai"); }
+    const n=pick([2,3]); return q("コインを "+n+"回 投げたときの 表と裏の 出方は ぜんぶで 何通り？", Math.pow(2,n), "baai"); },
+    bun(){
+      const n=pick([3,4]);
+      return q(n+"人から 委員長と 副委員長を 1人ずつ えらぶ えらび方は 何通り？", n*(n-1), "baai"); }},
+  {id:"g6u7", name:"円の面積", term:2, s:[9,1], gen(){
+    const r=rnd(2,9), area=Math.round(r*r*3.14*100)/100;
+    const right=""+area, set=new Set([right]);
+    [r*2*3.14, r*r, Math.round(r*r*3.14/2*100)/100, (r+1)*(r+1)*3.14].forEach(x=>{
+      const c=""+(Math.round(x*100)/100); if(set.size<4 && c!==right) set.add(c); });
+    return qc("半径 "+r+"cmの 円の面積は 何cm²？（円周率 3.14）", right, [...set], "zu"); },
+    bun(){
+      const r=pick([10,20]);
+      return q("半径 "+r+"mの 円の形をした 花だんの 面積は 何m²？（円周率 3.14）", r*r*3.14, "bun"); }},
+  {id:"g6u8", name:"立体の体積", term:2, s:[9,10], gen(){
+    if(Math.random()<0.5){ const a=rnd(12,40), h=rnd(2,9); return q("底面積 "+a+"cm²、高さ "+h+"cmの 角柱の 体積は 何cm³？", a*h, "zu"); }
+    const b=rnd(2,5)*2, t=rnd(2,6), h=rnd(2,8);
+    return q("底面が 底辺"+b+"cm・高さ"+t+"cmの 三角形で、高さが "+h+"cmの 三角柱の 体積は 何cm³？", b*t/2*h, "zu"); },
+    bun(){
+      const a=rnd(4,9), h=rnd(3,8);
+      return q("底面積 "+(a*10)+"cm²の 円柱の形をした コップに 高さ "+h+"cmまで 水を入れた。水の体積は 何cm³？", a*10*h, "bun"); }},
+  {id:"g6u9", name:"データの整理と活用", term:2, s:[9,25], gen(){
+    const v=rnd(1,3);
+    if(v===1){ const m=rnd(3,9); const a=m-rnd(1,2), b=m+rnd(1,2), c=m*3-a-b; return q(a+", "+b+", "+c+" の 平均値は？", m, "data"); }
+    if(v===2){ const arr=shuffle([rnd(1,4), rnd(5,7), rnd(8,12)]); const mid=[...arr].sort((x,y)=>x-y)[1]; return q(arr.join(", ")+" の 中央値は？", mid, "data"); }
+    const mode=rnd(2,9); let other=rnd(2,9); while(other===mode) other=rnd(2,9);
+    const arr=shuffle([mode, mode, mode, other, rnd(10,15)]);
+    return q(arr.join(", ")+" の 最頻値（いちばん 多く出る値）は？", mode, "data"); }},
+  {id:"g6u10", name:"比とその利用", term:2, s:[10,10], gen(){
+    const v=rnd(1,3);
+    if(v===1){ const a=rnd(2,7), b=rnd(2,7), k=rnd(2,5); return q(a+" : "+b+" ＝ "+(a*k)+" : x　x は いくつ？", b*k, "hi"); }
+    if(v===2){
+      let a=rnd(2,5), b=rnd(2,5);
+      while(fgcd(a,b)>1 || a===b){ a=rnd(2,5); b=rnd(2,5); }   /* a:b は 既約に */
+      const k=rnd(2,6);
+      const rt=a+" : "+b, set=new Set([rt]);
+      [ b+" : "+a, (a*2)+" : "+b, a+" : "+(b*2), (a+1)+" : "+b ].forEach(c=>{ if(set.size<4 && c!==rt) set.add(c); });
+      return qc((a*k)+" : "+(b*k)+" を かんたんに すると？", rt, [...set], "hi"); }
+    const a=rnd(2,4), b=rnd(3,5), total=(a+b)*rnd(2,9)*10;
+    return q(total+"円を "+a+" : "+b+" に 分けると、多いほうは 何円？", total/(a+b)*Math.max(a,b), "hi"); },
+    bun(){
+      const a=rnd(2,4), b=a+rnd(1,3), k=rnd(2,6);
+      return q("さとうと 小麦こを "+a+" : "+b+" で まぜる。さとうを "+(a*k)+"g 使うとき 小麦こは 何g？", b*k, "bun"); }},
+  {id:"g6u11", name:"図形の拡大と縮小", term:2, s:[10,25], gen(){
+    if(Math.random()<0.5){ const a=rnd(2,8), k=rnd(2,4); return q(k+"倍の 拡大図を かくとき、"+a+"cmの 辺は 何cmに なる？", a*k, "zu"); }
+    const cm=rnd(2,9);
+    return q("縮尺 1/1000 の 地図で "+cm+"cmの 道のりは、実際には 何m？", cm*10, "zu"); },
+    bun(){
+      const h=rnd(2,5), k=pick([100,200]);
+      return q("縮図で 木の高さが "+h+"cm。実際の高さは その "+k+"倍だと 何m？", h*k/100, "bun"); }},
+  {id:"g6u12", name:"比例と反比例", term:2, s:[11,10], gen(){
+    const v=rnd(1,3);
+    if(v===1){ const a=rnd(2,6), x=rnd(2,9); return q("y ＝ "+a+" × x　x が "+x+" のとき y は？", a*x, "hirei"); }
+    if(v===2){ const a=rnd(2,5), x1=rnd(2,4); return q("y は x に 比例し、x＝"+x1+" のとき y＝"+(a*x1)+"。x＝"+(x1*2)+" のとき y は？", a*x1*2, "hirei"); }
+    const k=pick([12,24,36]), x=pick([2,3,4,6]);
+    return q("x × y ＝ "+k+"（反比例）　x が "+x+" のとき y は？", k/x, "hirei"); },
+    bun(){
+      const a=rnd(2,5), n=rnd(3,8);
+      return q("1mの ねだんが "+(a*100)+"円の リボン。長さに 比例する 代金は、"+n+"mで 何円？", a*100*n, "bun"); }},
+  {id:"g6u13", name:"およその形と大きさ・単位", term:3, s:[1,10], gen(){
+    const v=rnd(1,3);
+    if(v===1){ const a=rnd(2,6)*10, b=rnd(2,5)*10; return q("たて 約"+a+"m・よこ 約"+b+"mの 長方形と みて、およその面積は 何m²？", a*b, "tani"); }
+    if(v===2){ return q("1m³ は 何L？", 1000, "tani"); }
+    const l=rnd(2,9); return q("水 "+l+"Lの 重さは 何kg？（水1Lは 1kg）", l, "tani"); }},
+];
+/* 6年の配当かんじ 191字（m＝ならう月の目安。あいうえお順の均等わり） */
+const KANJI_G6=[
+  {w:"胃",r:"い",m:4},{w:"異",r:"ことなる",m:4},{w:"遺",r:"い",m:4},{w:"域",r:"いき",m:4},
+  {w:"宇",r:"う",m:4},{w:"映",r:"うつる",m:4},{w:"延",r:"のびる",m:4},{w:"沿",r:"そう",m:4},
+  {w:"恩",r:"おん",m:4},{w:"我",r:"われ",m:4},{w:"灰",r:"はい",m:4},{w:"拡",r:"かく",m:4},
+  {w:"革",r:"かわ",m:4},{w:"閣",r:"かく",m:4},{w:"割",r:"わる",m:4},{w:"株",r:"かぶ",m:4},
+  {w:"干",r:"ほす",m:4},{w:"巻",r:"まく",m:4},{w:"看",r:"かん",m:4},
+  {w:"簡",r:"かん",m:5},{w:"危",r:"あぶない",m:5},{w:"机",r:"つくえ",m:5},{w:"貴",r:"とうとい",m:5},
+  {w:"揮",r:"き",m:5},{w:"疑",r:"うたがう",m:5},{w:"吸",r:"すう",m:5},{w:"供",r:"そなえる",m:5},
+  {w:"胸",r:"むね",m:5},{w:"郷",r:"きょう",m:5},{w:"勤",r:"つとめる",m:5},{w:"筋",r:"すじ",m:5},
+  {w:"系",r:"けい",m:5},{w:"敬",r:"うやまう",m:5},{w:"警",r:"けい",m:5},{w:"劇",r:"げき",m:5},
+  {w:"激",r:"はげしい",m:5},{w:"穴",r:"あな",m:5},{w:"券",r:"けん",m:5},
+  {w:"絹",r:"きぬ",m:6},{w:"権",r:"けん",m:6},{w:"憲",r:"けん",m:6},{w:"源",r:"みなもと",m:6},
+  {w:"厳",r:"きびしい",m:6},{w:"己",r:"おのれ",m:6},{w:"呼",r:"よぶ",m:6},{w:"誤",r:"あやまる",m:6},
+  {w:"后",r:"こう",m:6},{w:"孝",r:"こう",m:6},{w:"皇",r:"こう",m:6},{w:"紅",r:"べに",m:6},
+  {w:"降",r:"ふる",m:6},{w:"鋼",r:"はがね",m:6},{w:"刻",r:"きざむ",m:6},{w:"穀",r:"こく",m:6},
+  {w:"骨",r:"ほね",m:6},{w:"困",r:"こまる",m:6},{w:"砂",r:"すな",m:6},
+  {w:"座",r:"すわる",m:7},{w:"済",r:"すむ",m:7},{w:"裁",r:"さばく",m:7},{w:"策",r:"さく",m:7},
+  {w:"冊",r:"さつ",m:7},{w:"蚕",r:"かいこ",m:7},{w:"至",r:"いたる",m:7},{w:"私",r:"わたし",m:7},
+  {w:"姿",r:"すがた",m:7},{w:"視",r:"し",m:7},{w:"詞",r:"し",m:7},{w:"誌",r:"し",m:7},
+  {w:"磁",r:"じ",m:7},{w:"射",r:"いる",m:7},{w:"捨",r:"すてる",m:7},{w:"尺",r:"しゃく",m:7},
+  {w:"若",r:"わかい",m:7},{w:"樹",r:"じゅ",m:7},{w:"収",r:"おさめる",m:7},
+  {w:"宗",r:"しゅう",m:9},{w:"就",r:"つく",m:9},{w:"衆",r:"しゅう",m:9},{w:"従",r:"したがう",m:9},
+  {w:"縦",r:"たて",m:9},{w:"縮",r:"ちぢむ",m:9},{w:"熟",r:"じゅく",m:9},{w:"純",r:"じゅん",m:9},
+  {w:"処",r:"しょ",m:9},{w:"署",r:"しょ",m:9},{w:"諸",r:"しょ",m:9},{w:"除",r:"のぞく",m:9},
+  {w:"承",r:"うけたまわる",m:9},{w:"将",r:"しょう",m:9},{w:"傷",r:"きず",m:9},{w:"障",r:"さわる",m:9},
+  {w:"蒸",r:"むす",m:9},{w:"針",r:"はり",m:9},{w:"仁",r:"じん",m:9},
+  {w:"垂",r:"たれる",m:10},{w:"推",r:"おす",m:10},{w:"寸",r:"すん",m:10},{w:"盛",r:"もる",m:10},
+  {w:"聖",r:"せい",m:10},{w:"誠",r:"まこと",m:10},{w:"舌",r:"した",m:10},{w:"宣",r:"せん",m:10},
+  {w:"専",r:"もっぱら",m:10},{w:"泉",r:"いずみ",m:10},{w:"洗",r:"あらう",m:10},{w:"染",r:"そめる",m:10},
+  {w:"銭",r:"ぜに",m:10},{w:"善",r:"よい",m:10},{w:"奏",r:"かなでる",m:10},{w:"窓",r:"まど",m:10},
+  {w:"創",r:"つくる",m:10},{w:"装",r:"よそおう",m:10},{w:"層",r:"そう",m:10},
+  {w:"操",r:"あやつる",m:11},{w:"蔵",r:"くら",m:11},{w:"臓",r:"ぞう",m:11},{w:"存",r:"そん",m:11},
+  {w:"尊",r:"とうとぶ",m:11},{w:"退",r:"しりぞく",m:11},{w:"宅",r:"たく",m:11},{w:"担",r:"かつぐ",m:11},
+  {w:"探",r:"さがす",m:11},{w:"誕",r:"たん",m:11},{w:"段",r:"だん",m:11},{w:"暖",r:"あたたかい",m:11},
+  {w:"値",r:"ね",m:11},{w:"宙",r:"ちゅう",m:11},{w:"忠",r:"ちゅう",m:11},{w:"著",r:"あらわす",m:11},
+  {w:"庁",r:"ちょう",m:11},{w:"頂",r:"いただき",m:11},{w:"腸",r:"ちょう",m:11},
+  {w:"潮",r:"しお",m:12},{w:"賃",r:"ちん",m:12},{w:"痛",r:"いたい",m:12},{w:"敵",r:"てき",m:12},
+  {w:"展",r:"てん",m:12},{w:"討",r:"うつ",m:12},{w:"党",r:"とう",m:12},{w:"糖",r:"とう",m:12},
+  {w:"届",r:"とどける",m:12},{w:"難",r:"むずかしい",m:12},{w:"乳",r:"ちち",m:12},{w:"認",r:"みとめる",m:12},
+  {w:"納",r:"おさめる",m:12},{w:"脳",r:"のう",m:12},{w:"派",r:"は",m:12},{w:"拝",r:"おがむ",m:12},
+  {w:"背",r:"せ",m:12},{w:"肺",r:"はい",m:12},{w:"俳",r:"はい",m:12},
+  {w:"班",r:"はん",m:1},{w:"晩",r:"ばん",m:1},{w:"否",r:"いな",m:1},{w:"批",r:"ひ",m:1},
+  {w:"秘",r:"ひめる",m:1},{w:"俵",r:"たわら",m:1},{w:"腹",r:"はら",m:1},{w:"奮",r:"ふるう",m:1},
+  {w:"並",r:"ならぶ",m:1},{w:"陛",r:"へい",m:1},{w:"閉",r:"とじる",m:1},{w:"片",r:"かた",m:1},
+  {w:"補",r:"おぎなう",m:1},{w:"暮",r:"くれる",m:1},{w:"宝",r:"たから",m:1},{w:"訪",r:"おとずれる",m:1},
+  {w:"亡",r:"ぼう",m:1},{w:"忘",r:"わすれる",m:1},{w:"棒",r:"ぼう",m:1},
+  {w:"枚",r:"まい",m:2},{w:"幕",r:"まく",m:2},{w:"密",r:"みつ",m:2},{w:"盟",r:"めい",m:2},
+  {w:"模",r:"も",m:2},{w:"訳",r:"わけ",m:2},{w:"郵",r:"ゆう",m:2},{w:"優",r:"やさしい",m:2},
+  {w:"預",r:"あずける",m:2},{w:"幼",r:"おさない",m:2},{w:"欲",r:"ほしい",m:2},{w:"翌",r:"よく",m:2},
+  {w:"乱",r:"みだれる",m:2},{w:"卵",r:"たまご",m:2},{w:"覧",r:"らん",m:2},{w:"裏",r:"うら",m:2},
+  {w:"律",r:"りつ",m:2},{w:"臨",r:"のぞむ",m:2},{w:"朗",r:"ほがらか",m:2},{w:"論",r:"ろん",m:2},
+];
+/* べつの正しい読み（他の字の読みと かぶって「正しいのに×」になるのを防ぐ用） */
+const KANJI_ALT_G6={
+  "異":["い"],"革":["かく"],"干":["かん"],"貴":["き"],"郷":["ごう"],
+  "紅":["こう"],"降":["こう"],"鋼":["こう"],"刻":["こく"],
+  "至":["し"],"私":["し"],"姿":["し"],"傷":["しょう"],"障":["しょう"],
+  "盛":["せい"],"誠":["せい"],"専":["せん"],"泉":["せん"],"染":["せん"],"銭":["せん"],
+  "創":["そう"],"奏":["そう"],"窓":["そう"],"操":["そう"],"装":["そう"],"蔵":["ぞう"],
+  "担":["たん"],"探":["たん"],"頂":["ちょう"],"潮":["ちょう"],"討":["とう"],
+  "背":["はい"],"否":["ひ"],"秘":["ひ"],"並":["へい"],"閉":["へい"],"忘":["ぼう"],
+  "優":["ゆう"],"欲":["よく"],"乱":["らん"],"尊":["とうとい"],
+};
+const SENTS_G6={};   /* 6年の例文は未作成（よみ・かきとり系は自動で ふつうの よみ／なぞりがきに切りかわる） */
+const KANJI_MONTH_ORDER_G6=[4,5,6,7,9,10,11,12,1,2];
+
 /* ===== 学年の引き出し（学年パック） =====
    学年ごとの中身（算数単元・漢字・例文・時期）を1つの引き出しにまとめる。
    1年・6年は中身ができたら ここに追加する（設計図：spec/学年拡張-設計メモ.md）
@@ -1937,6 +2122,10 @@ const GRADE_PACKS={
   3:{label:"3ねんせい",
      mathUnits:MATH_UNITS_G3, kanji:KANJI_G3, kanjiAlt:KANJI_ALT_G3, sents:SENTS_G3,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G3, preKanji:G1_KANJI+G2_KANJI},
+  /* 6年の preKanji は 1〜3年分まで（4・5年配当の変換辞書語は少ないので実用上OK） */
+  6:{label:"6ねんせい",
+     mathUnits:MATH_UNITS_G6, kanji:KANJI_G6, kanjiAlt:KANJI_ALT_G6, sents:SENTS_G6,
+     kanjiMonthOrder:KANJI_MONTH_ORDER_G6, preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join("")},
 };
 /* いま あそんでいる子の学年の中身。applyGradePack() で引き出しごと入れ替える */
 let MATH_UNITS=MATH_UNITS_G3, KANJI=KANJI_G3, KANJI_ALT=KANJI_ALT_G3, SENTS=SENTS_G3,
@@ -3012,7 +3201,8 @@ const CAT_LABEL={add:"たしざん", sub:"ひきざん", mul:"かけざん", div
   kanji:"かんじの よみ", okuri:"おくりがな", kaki:"かんじの かきとり",
   toki:"時間・時こく", tani:"たんい(長さ・重さ)", big:"大きい数", amari:"あまりのわり算",
   frac:"ぶんすう", dec:"しょうすう", box:"□を使った式", bai:"なんばい", zu:"ずけい",
-  bun:"文章もんだい", kazu:"かず・ばんめ", kurabe:"くらべかた", moji:"もじあつめ"};
+  bun:"文章もんだい", kazu:"かず・ばんめ", kurabe:"くらべかた", moji:"もじあつめ",
+  shiki:"文字と式", baai:"場合の数", hi:"比", hirei:"比例・反比例", data:"データ・平均"};
 const HOUR_BUCKETS=[
   {key:"あさ",   lo:5,  hi:10, label:"あさ (5-10時)"},
   {key:"ひる",   lo:11, hi:14, label:"ひる (11-14時)"},
