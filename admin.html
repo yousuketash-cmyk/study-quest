@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>スタディクエスト 見守り画面</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Hiragino Maru Gothic ProN","BIZ UDGothic","Meiryo",sans-serif;
+    background:linear-gradient(160deg,#1b2a6b,#3b1f7a); min-height:100vh; color:#243b53;}
+  #wrap{max-width:560px; margin:0 auto; padding:20px 14px 60px;}
+  h1{color:#fff; font-size:20px; text-align:center; margin:14px 0 2px;}
+  .sub{color:#fff; opacity:.7; text-align:center; font-size:12px; margin-bottom:18px;}
+  .card{background:#fff; border-radius:16px; padding:16px; margin-bottom:14px; box-shadow:0 4px 14px rgba(0,0,0,.18);}
+  .in{width:100%; font-size:16px; padding:12px; border:2px solid #cbd5e1; border-radius:12px; margin-bottom:10px; font-family:inherit;}
+  .btn{width:100%; font-size:16px; font-weight:800; padding:13px; border:none; border-radius:12px; color:#fff;
+    background:linear-gradient(135deg,#ff8a1e,#f0640c); cursor:pointer;}
+  .hint{color:#ef4444; font-size:12px; font-weight:800; min-height:16px; margin-bottom:6px;}
+  .kname{font-size:17px; font-weight:800;}
+  .meta{font-size:12px; color:#829ab1; margin-top:2px;}
+  .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:12px 0;}
+  .tile{background:#f0f4f8; border-radius:10px; padding:8px 4px; text-align:center;}
+  .tv{font-size:16px; font-weight:800;}
+  .tl{font-size:10px; color:#829ab1;}
+  .sec{font-size:12px; font-weight:800; color:#829ab1; margin:12px 0 6px;}
+  .bar{display:flex; align-items:center; gap:8px; margin:4px 0; font-size:12px;}
+  .bar .nm{width:110px; flex-shrink:0;}
+  .bar .tr{flex:1; background:#e2e8f0; border-radius:6px; height:12px; overflow:hidden;}
+  .bar .fl{height:100%; border-radius:6px;}
+  .bar .pc{width:86px; text-align:right; color:#627d98; flex-shrink:0;}
+  .days{display:flex; gap:4px; align-items:flex-end; height:46px; margin-top:6px;}
+  .day{flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:2px;}
+  .day .b{width:100%; background:linear-gradient(180deg,#60a5fa,#2563eb); border-radius:3px 3px 0 0; min-height:2px;}
+  .day .d{font-size:9px; color:#829ab1;}
+  .note{font-size:11px; color:#94a3b8; margin-top:10px; line-height:1.6;}
+  .err{color:#fff; background:#ef4444; border-radius:10px; padding:10px; font-size:13px; font-weight:800; text-align:center;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>📊 スタディクエスト 見守り画面</h1>
+  <div class="sub">おうちの人用：かぞく全員の きろくを 一覧で</div>
+
+  <div class="card" id="loginCard">
+    <input class="in" id="code" placeholder="あいことば" autocomplete="off">
+    <input class="in" id="pin" type="password" placeholder="おうちのひと用ばんごう" autocomplete="off">
+    <div class="hint" id="hint"></div>
+    <button class="btn" onclick="load()">ひらく</button>
+  </div>
+
+  <div id="result"></div>
+</div>
+
+<script>
+const CLOUD_URL="PASTE_SUPABASE_URL_HERE";
+const CLOUD_KEY="PASTE_SUPABASE_ANON_KEY_HERE";
+const CAT_LABEL={add:"たしざん", sub:"ひきざん", mul:"かけざん", div:"わりざん",
+  kanji:"かんじの よみ", okuri:"おくりがな", kaki:"かんじの かきとり",
+  toki:"時間・時こく", tani:"たんい(長さ・重さ)", big:"大きい数", amari:"あまりのわり算",
+  frac:"ぶんすう", dec:"しょうすう", box:"□を使った式", bai:"なんばい", zu:"ずけい"};
+const COURSE_NAME={dragon:"ドラゴンコース", sky:"そらコース", sea:"うみコース"};
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+async function rpc(fn, args){
+  const res=await fetch(CLOUD_URL+"/rest/v1/rpc/"+fn,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":CLOUD_KEY,"Authorization":"Bearer "+CLOUD_KEY},
+    body:JSON.stringify(args)});
+  if(!res.ok) throw new Error(fn+" "+res.status);
+  const t=await res.text();
+  return t?JSON.parse(t):null;
+}
+function accColor(a){ return a>=0.8?"#22c55e":(a>=0.6?"#f59e0b":"#ef4444"); }
+function ymdOf(dt){ return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0"); }
+
+async function load(){
+  const code=document.getElementById("code").value.trim();
+  const pin=document.getElementById("pin").value.trim();
+  const hint=document.getElementById("hint");
+  if(!code||!pin){ hint.textContent="あいことばと ばんごうの 両方を 入れてください"; return; }
+  hint.textContent="よみこみ中…";
+  let rows=null;
+  try{ rows=await rpc("sq_admin_overview",{p_code:code, p_pin:pin}); }
+  catch(e){ hint.textContent="つながりませんでした（電波・設定をご確認ください）"; return; }
+  if(rows===null){ hint.textContent="あいことば か ばんごうが ちがいます"; return; }
+  hint.textContent="";
+  render(rows);
+}
+
+function render(rows){
+  const out=document.getElementById("result");
+  if(!rows.length){ out.innerHTML='<div class="card">まだ プレイヤーが いません。ゲーム側で「あたらしく はじめる」をすると ここに出ます。</div>'; return; }
+  let html="";
+  rows.forEach(r=>{
+    const d=r.data||{};
+    const log=d.log||[];
+    const totalOk=log.reduce((s,e)=>s+(e.ok?1:0),0);
+    const acc=log.length?Math.round(totalOk/log.length*100):null;
+    const last=r.updated_at?new Date(r.updated_at):null;
+    const lastStr=last?(ymdOf(last)+" "+String(last.getHours()).padStart(2,"0")+":"+String(last.getMinutes()).padStart(2,"0")):"（まだ記録なし）";
+    // 直近7日の学習量
+    const days=[]; const now=new Date();
+    for(let i=6;i>=0;i--){ const dt=new Date(now); dt.setDate(now.getDate()-i); days.push({d:ymdOf(dt), label:(dt.getMonth()+1)+"/"+dt.getDate(), n:0}); }
+    log.forEach(e=>{ const hit=days.find(x=>x.d===e.d); if(hit) hit.n++; });
+    const maxN=Math.max(1,...days.map(x=>x.n));
+    const daysHtml=days.map(x=>`<div class="day"><div class="b" style="height:${Math.round(x.n/maxN*34)+2}px; opacity:${x.n?1:.15};"></div><div class="d">${x.label}</div></div>`).join("");
+    // 分野別（10問以上の分野のみ・正解率順）
+    const agg={};
+    log.forEach(e=>{ (agg[e.cat]=agg[e.cat]||{n:0,ok:0}); agg[e.cat].n++; agg[e.cat].ok+=e.ok?1:0; });
+    const cats=Object.keys(agg).map(k=>({k:k,n:agg[k].n,acc:agg[k].ok/agg[k].n})).filter(c=>c.n>=5).sort((a,b)=>b.acc-a.acc);
+    const catHtml=cats.map(c=>`<div class="bar"><div class="nm">${esc(CAT_LABEL[c.k]||c.k)}</div>
+      <div class="tr"><div class="fl" style="width:${Math.round(c.acc*100)}%; background:${accColor(c.acc)};"></div></div>
+      <div class="pc">${Math.round(c.acc*100)}%（${c.n}問）</div></div>`).join("") || '<div class="meta">記録が たまると 分野別の 得意・にがてが 出ます（各5問から）</div>';
+    html+=`<div class="card">
+      <div class="kname">👤 ${esc(r.name)}</div>
+      <div class="meta">さいごに あそんだ：${lastStr}　／　${esc(COURSE_NAME[d.course]||"")}</div>
+      <div class="tiles">
+        <div class="tile"><div class="tv">Lv.${d.lv||1}</div><div class="tl">レベル</div></div>
+        <div class="tile"><div class="tv">${d.total||0}</div><div class="tl">といた問題</div></div>
+        <div class="tile"><div class="tv">${acc===null?"−":acc+"%"}</div><div class="tl">正解率</div></div>
+        <div class="tile"><div class="tv">${d.loginDays||0}日</div><div class="tl">あそんだ日数</div></div>
+      </div>
+      <div class="sec">この7日間の 学習量（問題数）</div>
+      <div class="days">${daysHtml}</div>
+      <div class="sec">分野別の せいかいりつ</div>
+      ${catHtml}
+      <div class="note">くわしい分析（集中の続き方・時間帯・気づきのまとめ）は、ゲーム内の「おうちの人へ」で本人のプレイヤーを開くと見られます。この画面は閲覧専用で、記録には影響しません。</div>
+    </div>`;
+  });
+  out.innerHTML=html;
+}
+document.getElementById("pin").addEventListener("keydown",e=>{ if(e.key==="Enter") load(); });
+</script>
+</body>
+</html>

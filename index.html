@@ -292,6 +292,24 @@
     </div>
   </div>
 
+  <!-- かぞくの あいことば（クラウド保存の入口） -->
+  <section class="screen" id="scFamily">
+    <h1>スタディクエスト</h1>
+    <p class="subtitle">かぞくの あいことば</p>
+    <div class="card">
+      <div style="font-size:13px; color:#627d98; font-weight:800; margin-bottom:10px; line-height:1.7;">
+        あいことばを いれると、どの タブレットでも<br>おなじ つづきから あそべるよ！</div>
+      <input class="nameinput" id="famCode" maxlength="20" placeholder="あいことば（4もじ いじょう）" autocomplete="off">
+      <div class="namehint" id="famHint"></div>
+      <button class="btn adventure" onclick="famJoin()"><span class="menu-emoji">🔑</span>はいる</button>
+      <div style="border-top:1px dashed #cbd5e1; margin:14px 0 10px;"></div>
+      <div style="font-size:12px; color:#829ab1; font-weight:800; margin-bottom:8px;">はじめて つかう おうちの人は こちら：</div>
+      <input class="nameinput" id="famPin" maxlength="20" placeholder="おうちのひと用ばんごう（4もじ いじょう）" autocomplete="off">
+      <button class="btn dex" onclick="famCreate()"><span class="menu-emoji">🏠</span>あいことばを あたらしく つくる</button>
+    </div>
+    <div class="reset" onclick="famLocal()">クラウドを つかわず この端末だけで あそぶ</div>
+  </section>
+
   <!-- だれが あそぶ？（きょうだいで きろくを わける） -->
   <section class="screen" id="scPlayers">
     <h1>スタディクエスト</h1>
@@ -654,6 +672,27 @@ const ENEMIES=[
 ];
 const BOSS={e:"🐲",n:"まとめキング"};
 
+/* ============ クラウド保存（Supabase）：どの端末でも同じ記録 ============ */
+const CLOUD_URL="PASTE_SUPABASE_URL_HERE";       /* 例 https://xxxx.supabase.co */
+const CLOUD_KEY="PASTE_SUPABASE_ANON_KEY_HERE";  /* anon public キー（公開してよい種類のキー） */
+function cloudReady(){ return CLOUD_URL.indexOf("http")===0 && CLOUD_KEY.length>40; }
+async function rpc(fn, args){
+  const res=await fetch(CLOUD_URL+"/rest/v1/rpc/"+fn, {
+    method:"POST",
+    headers:{"Content-Type":"application/json", "apikey":CLOUD_KEY, "Authorization":"Bearer "+CLOUD_KEY},
+    body:JSON.stringify(args)
+  });
+  if(!res.ok) throw new Error("rpc "+fn+" failed: "+res.status);
+  const t=await res.text();
+  return t ? JSON.parse(t) : null;
+}
+/* かぞくの あいことば（この端末が どの家族か） */
+const FKEY="studyquest_family";
+let FAMILY=null;
+try{ FAMILY=JSON.parse(localStorage.getItem(FKEY)); }catch(e){}
+function cloudOn(){ return cloudReady() && FAMILY && FAMILY.code && !FAMILY.local; }
+function saveFamily(){ localStorage.setItem(FKEY, JSON.stringify(FAMILY)); }
+
 /* ============ プレイヤー（きょうだいで きろくを わける） ============ */
 const PKEY="studyquest_players";
 function keyFor(id){ return "studyquest_v2_p"+id; }
@@ -718,21 +757,112 @@ function createPlayer(){
   const name=document.getElementById("playerNameInput").value.trim().slice(0,10);
   if(!name){ document.getElementById("playerNameHint").textContent="なまえを いれてね"; return; }
   const id=PLAYERS.next++;
-  PLAYERS.list.push({id:id, name:name});
+  const pl={id:id, name:name};
+  PLAYERS.list.push(pl);
   savePlayers();
+  if(cloudOn()){
+    rpc("sq_add_player",{p_code:FAMILY.code, p_name:name})
+      .then(cid=>{ if(cid){ pl.cloudId=cid; savePlayers(); } }).catch(()=>{});
+  }
   startAs(id);
 }
-function startAs(id){
+async function startAs(id){
   PID=id; KEY=keyFor(id);
   D=loadData();
+  /* クラウドに もっと進んだ記録が あれば そちらを つかう（といた問題数で比較） */
+  const pl=currentPlayer();
+  if(cloudOn() && pl && pl.cloudId){
+    try{
+      const res=await rpc("sq_get_save",{p_code:FAMILY.code, p_player:pl.cloudId});
+      if(res && res.data && (res.data.total||0)>=(D.total||0)){
+        D=normalizeSave(res.data);
+        localStorage.setItem(KEY, JSON.stringify(D));
+      }
+    }catch(e){ /* オフラインなら ローカルのまま */ }
+  }
   renderHeader(); renderHome();
   if(!D.course){ renderStarter(); show("scStarter"); }
   else { goHome(); checkLoginBonus(); }
 }
 function backToPlayers(){
-  if(D) saveData();
+  if(D){ saveData(); pushNow(); }
   renderPlayers(); show("scPlayers");
 }
+/* ============ かぞくの あいことば と クラウド同期 ============ */
+function famHint(msg){ document.getElementById("famHint").textContent=msg; }
+async function famJoin(){
+  const code=document.getElementById("famCode").value.trim();
+  if(code.length<4){ famHint("あいことばは 4もじ いじょうだよ"); return; }
+  famHint("たしかめちゅう…");
+  try{
+    const ok=await rpc("sq_check_family",{p_code:code});
+    if(!ok){ famHint("その あいことばは 見つからなかったよ"); return; }
+    FAMILY={code:code}; saveFamily();
+    await enterGame();
+  }catch(e){ famHint("つながらなかった… でんぱを たしかめてね"); }
+}
+async function famCreate(){
+  const code=document.getElementById("famCode").value.trim();
+  const pin=document.getElementById("famPin").value.trim();
+  if(code.length<4){ famHint("あいことばは 4もじ いじょうだよ"); return; }
+  if(pin.length<4){ famHint("おうちのひと用ばんごうも 4もじ いじょう いれてね"); return; }
+  famHint("つくりちゅう…");
+  try{
+    const fid=await rpc("sq_register_family",{p_code:code, p_pin:pin});
+    if(!fid){ famHint("うまく つくれなかった… べつの あいことばで ためしてね"); return; }
+    FAMILY={code:code}; saveFamily();
+    await enterGame();
+  }catch(e){ famHint("その あいことばは もう つかわれているみたい。べつのに してね"); }
+}
+function famLocal(){
+  FAMILY={local:true}; saveFamily();
+  enterGame();
+}
+function famReset(){
+  if(!confirm("あいことばを 入れなおしますか？（記録は きえません）")) return;
+  localStorage.removeItem(FKEY); location.reload();
+}
+/* クラウドの プレイヤー一覧と ローカルを そろえる */
+async function syncPlayers(){
+  if(!cloudOn()) return;
+  const cloud=await rpc("sq_get_players",{p_code:FAMILY.code});   /* [{id,name}] */
+  const alive=new Set(cloud.map(cp=>cp.id));
+  cloud.forEach(cp=>{
+    let pl=PLAYERS.list.find(x=>x.cloudId===cp.id);
+    if(!pl){ PLAYERS.list.push({id:PLAYERS.next++, name:cp.name, cloudId:cp.id}); }
+    else pl.name=cp.name;
+  });
+  /* クラウドに まだ いない ローカルの子（ひっこし直後など）を 持ち上げる */
+  for(const pl of PLAYERS.list){
+    if(pl.cloudId) continue;
+    pl.cloudId=await rpc("sq_add_player",{p_code:FAMILY.code, p_name:pl.name});
+    if(pl.cloudId) alive.add(pl.cloudId);
+    const s=localStorage.getItem(keyFor(pl.id));
+    if(s && pl.cloudId) await rpc("sq_put_save",{p_code:FAMILY.code, p_player:pl.cloudId, p_data:JSON.parse(s)});
+  }
+  /* ほかの端末で けされた子は 一覧から はずす */
+  PLAYERS.list=PLAYERS.list.filter(pl=>!pl.cloudId || alive.has(pl.cloudId));
+  savePlayers();
+}
+/* セーブを クラウドへ（3秒に1回まで・失敗しても つぎの保存で リトライ） */
+let pushTimer=null;
+function schedulePush(){
+  if(!cloudOn() || pushTimer) return;
+  pushTimer=setTimeout(()=>{ pushTimer=null; pushNow(); }, 3000);
+}
+function pushNow(keepalive){
+  if(!cloudOn() || !D) return;
+  const pl=currentPlayer();
+  if(!pl || !pl.cloudId) return;
+  fetch(CLOUD_URL+"/rest/v1/rpc/sq_put_save", {
+    method:"POST", keepalive:!!keepalive,
+    headers:{"Content-Type":"application/json", "apikey":CLOUD_KEY, "Authorization":"Bearer "+CLOUD_KEY},
+    body:JSON.stringify({p_code:FAMILY.code, p_player:pl.cloudId, p_data:D})
+  }).catch(()=>{});
+}
+/* 画面を とじる・切りかえの 瞬間にも 送っておく */
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") pushNow(true); });
+
 /* ひきつぎファイル：URL版⇔ファイル版・べつの端末への ひっこし用 */
 function buildExportData(){
   if(PID && D) saveData();   /* あそび中の最新状態も 保存してから */
@@ -782,14 +912,19 @@ function importSaveFile(file){
 function renamePlayer(id){
   const pl=PLAYERS.list.find(p=>p.id===id); if(!pl) return;
   const n=prompt("あたらしい なまえ（10文字まで）", pl.name);
-  if(n && n.trim()){ pl.name=n.trim().slice(0,10); savePlayers(); openReport(); }
+  if(n && n.trim()){
+    pl.name=n.trim().slice(0,10); savePlayers();
+    if(cloudOn() && pl.cloudId) rpc("sq_rename_player",{p_code:FAMILY.code, p_player:pl.cloudId, p_name:pl.name}).catch(()=>{});
+    openReport();
+  }
 }
 function deletePlayer(id){
   const pl=PLAYERS.list.find(p=>p.id===id); if(!pl) return;
-  if(!confirm("「"+pl.name+"」の データを ぜんぶ けす？\n（レベル・なかま・記録が きえて、もとに もどせません）")) return;
+  if(!confirm("「"+pl.name+"」の データを ぜんぶ けす？\n（クラウドの記録も きえて、もとに もどせません）")) return;
   localStorage.removeItem(keyFor(id));
   PLAYERS.list=PLAYERS.list.filter(p=>p.id!==id);
   savePlayers();
+  if(cloudOn() && pl.cloudId) rpc("sq_delete_player",{p_code:FAMILY.code, p_player:pl.cloudId}).catch(()=>{});
   if(PID===id){ location.reload(); } else { openReport(); }
 }
 
@@ -800,6 +935,10 @@ function loadData(){
   try{ d=JSON.parse(localStorage.getItem(KEY))||{}; }catch(e){}
   // v1からの引き継ぎ（レベルだけ・さいしょのプレイヤーのみ）
   if(!d.lv && PID===1){ try{ const old=JSON.parse(localStorage.getItem("studyquest_v1")); if(old){ d.lv=old.lv; d.xp=old.xp; d.total=old.total; } }catch(e){} }
+  return normalizeSave(d);
+}
+/* クラウドから来たデータも ローカルのデータも 同じ整形を通す */
+function normalizeSave(d){
   d=Object.assign({lv:1, xp:0, total:0, collected:{}, log:[], sessions:[], lastLogin:"", loginStreak:0, loginDays:0, bestStreak:0, missions:null, review:null, sound:true,
     gems:0, skins:[], mates:[], equip:{head:null, mate:null}, gachaPity:0, pace:"std", checks:[], course:null, courses:[], kmode:"", dayWins:null}, d);
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
@@ -840,7 +979,7 @@ function endSession(result){
   if(D.sessions.length>300) D.sessions=D.sessions.slice(-300);
   saveData();
 }
-function saveData(){ if(KEY) localStorage.setItem(KEY, JSON.stringify(D)); }
+function saveData(){ if(KEY) localStorage.setItem(KEY, JSON.stringify(D)); schedulePush(); }
 let D=null;   /* startAs() で えらんだ プレイヤーの データが 入る */
 function collectedList(subId){ return D.collected[subId]||[]; }
 function isCollected(subId,monId){ return collectedList(subId).includes(monId); }
@@ -2349,8 +2488,14 @@ function settingsCard(){
         <span style="cursor:pointer; text-decoration:underline; color:#ef4444;" onclick="deletePlayer(${pl.id})">削除</span>
       </span></div>`;
   }).join("");
+  const cloudRow = !cloudReady()
+    ? `<div class="stat"><span>クラウド保存</span><span class="v">未設定</span></div>`
+    : (cloudOn()
+      ? `<div class="stat"><span>クラウド保存</span><span class="v">☁️ ON（あいことば：${escapeHtml(FAMILY.code)}）</span></div>`
+      : `<div class="stat"><span>クラウド保存</span><span class="v" style="cursor:pointer; text-decoration:underline;" onclick="famReset()">OFF（タップで あいことば入力へ）</span></div>`);
   return `<div class="card"><div class="rep-h">せってい</div>
     <div class="stat"><span>効果音</span><span class="v" style="cursor:pointer;" onclick="toggleSound()">${snd}</span></div>
+    ${cloudRow}
     <div style="font-size:12px; font-weight:800; color:#829ab1; margin:12px 0 2px;">プレイヤー（記録は一人ずつ別に保存されています）</div>
     ${rows}
     <div class="reset" style="text-align:left; margin-top:10px; opacity:.7;" onclick="exportSave()">📦 全員の記録を ひきつぎファイルに保存（別の端末・別の開き方への引っこし用）</div>
@@ -2678,12 +2823,16 @@ document.addEventListener("keydown",e=>{
   }
 });
 
-/* 初期化：まず「だれが あそぶ？」から（プレイヤーが まだ いなければ なまえ入力へ） */
-if(PLAYERS.list.length===0){
-  openNewPlayer();
-}else{
-  renderPlayers(); show("scPlayers");
+/* 初期化：あいことば → だれが あそぶ？ の順（クラウド未設定なら 今までどおり） */
+async function enterGame(){
+  if(cloudOn()){
+    try{ await syncPlayers(); }catch(e){ /* オフラインでも ローカルで あそべる */ }
+  }
+  if(PLAYERS.list.length===0){ openNewPlayer(); }
+  else { renderPlayers(); show("scPlayers"); }
 }
+if(cloudReady() && !FAMILY){ show("scFamily"); }
+else { enterGame(); }
 /* なまえ入力は Enter でも けってい できる */
 document.getElementById("playerNameInput").addEventListener("keydown",e=>{ if(e.key==="Enter") createPlayer(); });
 /* ひきつぎファイルの よみこみ */
