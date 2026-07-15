@@ -137,6 +137,8 @@
   .combo.c2{font-size:15px;}
   .combo.c3{font-size:17px; text-shadow:0 0 10px #ff8a1e; animation:cpulse .6s ease-in-out infinite;}
   @keyframes cpulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.14);}}
+  /* 図鑑：まだの なかまは シルエット（影絵）で「なんだろう？」を さそう */
+  .m-emoji.shadowed, .moncell.locked .m-emoji.shadowed{filter:brightness(0) opacity(.45) !important;}
   /* ホームの相棒：タップで よろこぶ */
   .buddy-big{cursor:pointer;}
   .buddy-big.bounce{animation:bounce .55s;}
@@ -803,6 +805,7 @@ function createPlayer(){
 async function startAs(id){
   PID=id; KEY=keyFor(id);
   D=loadData();
+  KNOWN_KANJI=null;   /* プレイヤーごとに ペースが違うので 学習ずみ漢字を作り直す */
   /* クラウドに もっと進んだ記録が あれば そちらを つかう（といた問題数で比較） */
   const pl=currentPlayer();
   if(cloudOn() && pl && pl.cloudId){
@@ -1048,6 +1051,7 @@ function renderHome(){
   const evo=winsToNextEvo();
   document.getElementById("homeEvo").textContent = evo ? `✨ ${evo.ns.emoji}「${evo.ns.name}」まで あと ${evo.wins}かい かてば しんか！` : "";
   renderMissions();
+  kanjifyDom(document.getElementById("scHome"));
 }
 /* つぎの進化まで「あと何回勝てばいいか」のざっくり計算（1勝≒110XPで見つもり） */
 function winsToNextEvo(){
@@ -1084,6 +1088,7 @@ function renderSubjects(){
     }
     g.appendChild(d);
   });
+  kanjifyDom(g);   /* 教科カードは show() のあとに描かれるので ここで変換 */
 }
 
 /* ============ 範囲えらび ============ */
@@ -1092,7 +1097,7 @@ function rangeInfo(subId, r){
   /* きょうかしょの すすみに あわせて、はんいの せつめいと ロックを きめる */
   if(subId==="math"){
     if(r.id==="now"){ const p=mathPool("now"); return {lock:false, sub:p.map(u=>u.name).join("・")}; }
-    if(r.id==="bun"){ return {lock:false, sub:"ならった ところから 文しょうもんだい だけ しゅうちゅう とっくん"}; }
+    if(r.id==="bun"){ return {lock:false, sub:"ならった ところから ぶんしょうもんだい だけ しゅうちゅう とっくん"}; }
     if(r.id==="all"){ return {lock:false, sub:"ならった たんげん "+taughtMathUnits().length+"こ ミックス（ボス）"}; }
     const t=+r.id[1];
     const total=MATH_UNITS.filter(u=>u.gen&&u.term===t).length;
@@ -1442,6 +1447,56 @@ const KANJI=[
 ];
 /* べつの正しい読み（ハズレ選択肢に出すと「それも正解なのに×」になるので除外する用）。
    出題リスト内の他の漢字の読みと かぶるものだけ 登録してある */
+/* ===== ならった漢字は 漢字で表示（1・2年=既習、3年=習った月まで） ===== */
+const G1_KANJI="一右雨円王音下火花貝学気九休玉金空月犬見五口校左三山子四糸字耳七車手十出女小上森人水正生青夕石赤千川先早草足村大男竹中虫町天田土二日入年白八百文木本名目立力林六";
+const G2_KANJI="引羽雲園遠何科夏家歌画回会海絵外角楽活間丸岩顔汽記帰弓牛魚京強教近兄形計元言原戸古午後語工公広交光考行高黄合谷国黒今才細作算止市矢姉思紙寺自時室社弱首秋週春書少場色食心新親図数西声星晴切雪船線前組走多太体台地池知茶昼長鳥朝直通弟店点電刀冬当東答頭同道読内南肉馬売買麦半番父風分聞米歩母方北毎妹万明鳴毛門夜野友用曜来里理話";
+let KNOWN_KANJI=null;   /* 学習ずみ漢字セット（時期・ペースが変わったら作り直す） */
+function knownKanjiSet(){
+  if(KNOWN_KANJI) return KNOWN_KANJI;
+  const s=new Set((G1_KANJI+G2_KANJI).split(""));
+  if(D){ KANJI.forEach(k=>{ if(monthTaught(k.m)) s.add(k.w); }); KNOWN_KANJI=s; }
+  return s;   /* Dがまだ無い間は1・2年分だけ（キャッシュもしない） */
+}
+/* 変換辞書：長いことばが先。漢字が全部「学習ずみ」のときだけ置きかえる */
+const KANJIFY_WORDS=[
+  ["ちからだめし","力だめし"],["なつやすみ","夏休み"],["いま ならって","今 習って"],["かい かてば","回 勝てば"],
+  ["きょうの ミッション","今日の ミッション"],["きょうは","今日は"],
+  ["ぶんしょう","文章"],["かきとり","書き取り"],["さんすう","算数"],["こくご","国語"],["しゃかい","社会"],
+  ["けいさん","計算"],["もんだい","問題"],["かんじを","漢字を"],["かんじで","漢字で"],["かんじの","漢字の"],["かんじは","漢字は"],
+  ["こたえ","答え"],["あわせて","合わせて"],["あわせた","合わせた"],["おなじ","同じ"],["ぜんぶ","全部"],
+  ["ならって","習って"],["ならった","習った"],["じかん","時間"],["ながさ","長さ"],["おもさ","重さ"],
+  ["あそんだ","遊んだ"],["あそべる","遊べる"],["あそぶ","遊ぶ"],["しんか","進化"],["にがて","苦手"],
+  ["ゆうがた","夕方"],["たべ","食べ"],["とうぶん","等分"],["ぶんの","分の"],["かず","数"],["なん","何"],
+  ["あさ","朝"],["ひる","昼"],["よる","夜"],["えき","駅"],["つぎの","次の"],["かてば","勝てば"],
+];
+/* みじかい語は「その語だけのテキスト」のときだけ置きかえ（誤変換よけ） */
+const KANJIFY_EXACT={"りか":"理科","よみ":"読み"};
+function kanjify(t){
+  if(!t || typeof t!=="string") return t;
+  const known=knownKanjiSet();
+  const usable=b=>{ for(const ch of b){ if(/[一-龯]/.test(ch) && !known.has(ch)) return false; } return true; };
+  for(const pair of KANJIFY_WORDS){
+    if(t.indexOf(pair[0])!==-1 && usable(pair[1])) t=t.split(pair[0]).join(pair[1]);
+  }
+  if(known.has("倍")) t=t.replace(/(\d+|何)ばい/g,"$1倍");
+  return t;
+}
+function kanjifyDom(root){
+  if(!root) return;
+  const known=knownKanjiSet();
+  const usable=b=>{ for(const ch of b){ if(/[一-龯]/.test(ch) && !known.has(ch)) return false; } return true; };
+  const w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let n;
+  while(n=w.nextNode()){
+    const v=n.nodeValue;
+    if(!v || !v.trim()) continue;
+    const ex=KANJIFY_EXACT[v.trim()];
+    if(ex && usable(ex)){ n.nodeValue=v.replace(v.trim(), ex); continue; }
+    const nv=kanjify(v);
+    if(nv!==v) n.nodeValue=nv;
+  }
+}
+
 const KANJI_ALT={
   "飲":["いん"],"横":["おう"],"開":["かい"],"寒":["かん"],"感":["かん"],"起":["き"],
   "宮":["きゅう"],"球":["きゅう"],"急":["きゅう"],"曲":["きょく"],"苦":["く"],"湖":["こ"],
@@ -1732,9 +1787,9 @@ function loadQ(){
   const wr=document.getElementById("writeInput");
   numI.style.display="none"; cb.style.display="none"; wr.style.display="none";
   if(q.kind==="math"){
-    tag.textContent=(q.cat==="bun")?"ぶんしょう":"けいさん"; tag.style.background="var(--blue)";
+    tag.textContent=kanjify((q.cat==="bun")?"ぶんしょう":"けいさん"); tag.style.background="var(--blue)";
     const isText=/[ぁ-んァ-ン一-龯□]/.test(q.text);
-    qtext.textContent=isText ? q.text : q.text+" = ？";
+    qtext.textContent=isText ? kanjify(q.text) : q.text+" = ？";   /* ならった漢字で出題 */
     if(isText && q.text.length>=14) qtext.style.fontSize="26px"; else qtext.style.fontSize="";
     qhint.textContent="";
     if(q.ch){ renderChoices(q.choices); }
@@ -2568,7 +2623,7 @@ function openDex(){
     s.monsters.forEach(m=>{
       const owned=isCollected(s.id,m.id);
       cells+=`<div class="moncell${owned?"":" locked"}">
-        <div class="m-emoji">${owned?m.emoji:"❓"}</div>
+        <div class="m-emoji${owned?"":" shadowed"}">${m.emoji}</div>
         <div class="m-name">${owned?m.name:"？？？"}</div>
         <div class="mstars" style="color:${RARITY[m.r||1].col};">${starsOf(m.r||1)}</div></div>`;
     });
@@ -2583,7 +2638,7 @@ function openDex(){
   mates.forEach(it=>{
     const owned=D.mates.includes(it.id);
     mcells+=`<div class="moncell${owned?"":" locked"}">
-      <div class="m-emoji">${owned?it.emoji:"❓"}</div>
+      <div class="m-emoji${owned?"":" shadowed"}">${it.emoji}</div>
       <div class="m-name">${owned?it.name:"？？？"}</div>
       <div class="mstars" style="color:${RARITY[it.r].col};">${starsOf(it.r)}</div></div>`;
   });
@@ -2633,7 +2688,7 @@ function progressCard(){
     <div class="rep-note" style="margin-top:8px;">今日の日付から標準ペースで自動判定します（長期休みは進みません）。算数の時期は啓林館の年間指導計画準拠、漢字の月わりは標準の目安です。出題・チェックは「ならった範囲」だけから出ます。</div>
   </div>`;
 }
-function paceSet(v){ D.pace=v; saveData(); openReport(); }
+function paceSet(v){ D.pace=v; KNOWN_KANJI=null; saveData(); openReport(); }
 
 /* せってい（音・プレイヤー管理・データ全消去。子どもの画面から遠ざけて事故防止） */
 function settingsCard(){
@@ -2961,7 +3016,9 @@ function openStatus(){
 /* ============ 画面切りかえ ============ */
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+  const el=document.getElementById(id);
+  el.classList.add("active");
+  kanjifyDom(el);   /* ならった漢字は 漢字で表示 */
   window.scrollTo(0,0);
 }
 function goHome(){ renderHeader(); renderHome(); show("scHome"); }
