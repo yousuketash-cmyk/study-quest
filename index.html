@@ -1119,10 +1119,12 @@ function normalizeSave(d){
 }
 /* 記録：1問ごとのログと、1回の集中（バトル）ごとのセッション */
 function ymd(dt){ return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0"); }
-function logAnswer(subId, cat, ok, ms, unit){
-  /* p＝この集中（セッション）の なん問目か。集中の続き方の分析に使う。u＝算数の単元（単元ランク用） */
+function logAnswer(subId, cat, ok, ms, unit, rev){
+  /* p＝この集中（セッション）の なん問目か。集中の続き方の分析に使う。u＝算数の単元（単元ランク用）
+     r＝🔁復習の出しなおし問題（一度まちがえた問題を 次は正解できたか＝定着の測定に使う） */
   const rec={t:Date.now(), d:ymd(new Date()), h:new Date().getHours(), sub:subId, cat:cat, ok:ok?1:0, ms:ms, p:sessCount};
   if(unit) rec.u=unit;
+  if(rev) rec.r=1;
   D.log.push(rec);
   if(D.log.length>3000) D.log=D.log.slice(-3000);
 }
@@ -1963,7 +1965,7 @@ function pickChoice(btn,val){
 function judge(ok, ans){
   if(battleOver) return;
   D.total++; sessCount++;
-  logAnswer(curSub.id, curCat, ok, answerMs, curQ && curQ.unit);
+  logAnswer(curSub.id, curCat, ok, answerMs, curQ && curQ.unit, curQ && curQ.review);
   missionEvent("answer");
   if(curSub.id==="math") missionEvent("answer_math");
   else if(curSub.id==="kanji") missionEvent("answer_kanji");

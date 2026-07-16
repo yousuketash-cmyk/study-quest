@@ -89,11 +89,74 @@ async function load(){
   try{ rows=await rpc("sq_admin_overview",{p_code:code, p_pin:pin}); }
   catch(e){ hint.textContent="つながりませんでした（電波・設定をご確認ください）"; return; }
   if(rows===null){ hint.textContent="あいことば か ばんごうが ちがいます"; return; }
+  /* 日別倉庫（save_days）：logが3,000問で消えても残る長期の記録。取れなくても画面は出す */
+  let dayRows=null;
+  try{ dayRows=await rpc("sq_admin_days",{p_code:code, p_pin:pin}); }catch(e){ dayRows=null; }
   hint.textContent="";
-  render(rows);
+  render(rows, dayRows||[]);
 }
 
-function render(rows){
+/* ===== せいちょうの きろく（日別倉庫から） ===== */
+function weekKey(dstr){ /* その週の月曜の日付（週ごとにまとめる用） */
+  const dt=new Date(dstr+"T00:00:00");
+  dt.setDate(dt.getDate()-((dt.getDay()+6)%7));
+  return ymdOf(dt);
+}
+function growthHtml(myDays){
+  if(!myDays.length) return '<div class="meta">クラウドに きろくが たまると、週ごとの のびが ここに出ます</div>';
+  /* 週ごとの正解率（直近8週） */
+  const wk={};
+  myDays.forEach(x=>{ const k=weekKey(x.d); (wk[k]=wk[k]||{n:0,ok:0}); wk[k].n+=(+x.n||0); wk[k].ok+=(+x.ok||0); });
+  let html="";
+  Object.keys(wk).sort().slice(-8).forEach(k=>{
+    const w=wk[k]; if(!w.n) return;
+    const acc=w.ok/w.n;
+    const dt=new Date(k+"T00:00:00");
+    html+=`<div class="bar"><div class="nm">${(dt.getMonth()+1)}/${dt.getDate()}の週</div>
+      <div class="tr"><div class="fl" style="width:${Math.round(acc*100)}%; background:${accColor(acc)};"></div></div>
+      <div class="pc">${Math.round(acc*100)}%（${w.n}問）</div></div>`;
+  });
+  /* 分野別ののび：さいきん2週間 と それより前 をくらべる（両方8問以上の分野だけ） */
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-14);
+  const cut=ymdOf(cutoff);
+  const before={}, recent={}; let rn=0, rok=0;
+  myDays.forEach(x=>{
+    (x.cats||[]).forEach(c=>{
+      rn+=(+c.rn||0); rok+=(+c.rok||0);
+      const tgt=(x.d>=cut)?recent:before;
+      (tgt[c.cat]=tgt[c.cat]||{n:0,ok:0}); tgt[c.cat].n+=(+c.n||0); tgt[c.cat].ok+=(+c.ok||0);
+    });
+  });
+  const moves=[];
+  Object.keys(recent).forEach(k=>{
+    const b=before[k], rc=recent[k];
+    if(b && b.n>=8 && rc.n>=8) moves.push({k:k, diff:rc.ok/rc.n-b.ok/b.n, acc:rc.ok/rc.n});
+  });
+  if(moves.length){
+    moves.sort((a,b)=>b.diff-a.diff);
+    html+='<div class="sec">分野別の のび（さいきん2週間 と そのまえ）</div>';
+    moves.slice(0,6).forEach(m=>{
+      const pt=Math.round(m.diff*100);
+      const mark=pt>=3?"▲":(pt<=-3?"▼":"→");
+      const col=pt>=3?"#22c55e":(pt<=-3?"#ef4444":"#94a3b8");
+      html+=`<div class="bar"><div class="nm">${esc(CAT_LABEL[m.k]||m.k)}</div>
+        <div class="tr"><div class="fl" style="width:${Math.round(m.acc*100)}%; background:${accColor(m.acc)};"></div></div>
+        <div class="pc" style="color:${col}; font-weight:800;">${mark}${pt>0?"+":""}${pt}%</div></div>`;
+    });
+  }else{
+    html+='<div class="meta">記録が2週間ぶん以上たまると、分野別の のびが 出ます</div>';
+  }
+  /* まちがいなおし（🔁復習）の成功りつ＝定着の見立て */
+  if(rn>=5){
+    const racc=Math.round(rok/rn*100);
+    html+=`<div class="meta" style="margin-top:8px;">🔁 まちがいなおしの せいこうりつ：<b style="color:${accColor(rok/rn)};">${racc}%</b>（一度まちがえた問題 ${rn}回中 ${rok}回 正解＝おぼえなおす力の目安）</div>`;
+  }else{
+    html+='<div class="meta" style="margin-top:8px;">🔁 まちがいなおしの きろくは これから たまります（一度まちがえた問題を 次に正解できたか＝定着の目安）</div>';
+  }
+  return html;
+}
+
+function render(rows, dayRows){
   const out=document.getElementById("result");
   if(!rows.length){ out.innerHTML='<div class="card">まだ プレイヤーが いません。ゲーム側で「あたらしく はじめる」をすると ここに出ます。</div>'; return; }
   let html="";
@@ -145,6 +208,8 @@ function render(rows){
       <div class="meta" style="text-align:right;">この7日間の合計：${total7n}問・${total7m}分</div>
       <div class="sec">分野別の せいかいりつ</div>
       ${catHtml}
+      <div class="sec">せいちょうの きろく（週ごとの せいかいりつ）</div>
+      ${growthHtml((dayRows||[]).filter(x=>x.player_id===r.id).sort((a,b)=>a.d<b.d?-1:1))}
       <div class="note">くわしい分析（集中の続き方・時間帯・気づきのまとめ）は、ゲーム内の「おうちの人へ」で本人のプレイヤーを開くと見られます。この画面は閲覧専用で、記録には影響しません。</div>
     </div>`;
   });
