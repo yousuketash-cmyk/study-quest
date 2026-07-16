@@ -373,6 +373,13 @@
         <button class="pacebtn on" data-g="3" onclick="pickGrade(3)">3ねんせい</button>
         <button class="pacebtn" data-g="6" onclick="pickGrade(6)">6ねんせい</button>
       </div>
+      <div id="bookRow">
+        <div style="font-weight:800; margin:12px 0 6px;">きょうかしょの まち（わからなければ そのまま）</div>
+        <div id="bookPick" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+          <button class="pacebtn on" data-b="hadano" onclick="pickBook('hadano')">はだの</button>
+          <button class="pacebtn" data-b="kawaguchi" onclick="pickBook('kawaguchi')">かわぐち</button>
+        </div>
+      </div>
       <button class="btn adventure" onclick="createPlayer()"><span class="menu-emoji">🎒</span>これで はじめる！</button>
     </div>
   </section>
@@ -643,6 +650,7 @@
 <script src="data/pack-g6.js"></script>
 <script src="data/subjects-extra.js"></script>
 <script src="data/advanced.js"></script>
+<script src="data/book-kawaguchi.js"></script>
 <script>
 /* ============ 相棒モンスター：3コース制（さいしょに えらぶ） ============ */
 const COURSES={
@@ -855,15 +863,24 @@ function renderPlayers(){
   }
 }
 let NEW_GRADE=3;   /* 新しい子の学年（引き出しが できている学年だけ えらべる） */
+let NEW_BOOK="hadano";   /* 教科書セット（今は3年生だけ かわぐち版がある） */
 function pickGrade(g){
   if(!GRADE_PACKS[g]) return;
   NEW_GRADE=g;
   document.querySelectorAll("#gradePick .pacebtn").forEach(b=>b.classList.toggle("on", +b.dataset.g===g));
+  /* 教科書セットの用意がある学年だけ えらぶ欄を見せる（ない学年は はだの固定） */
+  const hasBook=Object.keys(BOOK_PACKS).some(b=>BOOK_PACKS[b][g]);
+  document.getElementById("bookRow").style.display=hasBook?"":"none";
+  if(!hasBook) pickBook("hadano");
+}
+function pickBook(b){
+  NEW_BOOK=b;
+  document.querySelectorAll("#bookPick .pacebtn").forEach(x=>x.classList.toggle("on", x.dataset.b===b));
 }
 function openNewPlayer(){
   document.getElementById("playerNameInput").value="";
   document.getElementById("playerNameHint").textContent="";
-  pickGrade(3);
+  pickGrade(3); pickBook("hadano");
   show("scNewPlayer");
   setTimeout(()=>document.getElementById("playerNameInput").focus(),80);
 }
@@ -874,8 +891,8 @@ function createPlayer(){
   const pl={id:id, name:name};
   PLAYERS.list.push(pl);
   savePlayers();
-  /* えらんだ学年を さいしょの記録として書いておく（のこりは normalizeSave が うめる） */
-  localStorage.setItem(keyFor(id), JSON.stringify({grade:NEW_GRADE}));
+  /* えらんだ学年と教科書セットを さいしょの記録として書いておく（のこりは normalizeSave が うめる） */
+  localStorage.setItem(keyFor(id), JSON.stringify({grade:NEW_GRADE, book:NEW_BOOK}));
   if(cloudOn()){
     rpc("sq_add_player",{p_code:FAMILY.code, p_name:name})
       .then(cid=>{ if(cid){ pl.cloudId=cid; savePlayers(); } }).catch(()=>{});
@@ -1065,6 +1082,7 @@ function normalizeSave(d){
   if(!Array.isArray(d.titles)) d.titles=[];
   if(!Array.isArray(d.rarityBonus)) d.rarityBonus=[];
   if(![1,3,6].includes(d.grade)) d.grade=3;   /* 学年（引き出し）。むかしのデータは 3年生あつかい */
+  if(!BOOK_PACKS[d.book]) d.book="hadano";   /* 教科書セット。むかしのデータは はだの（啓林・大日本・教出）あつかい */
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
   if(!["fast","std","slow"].includes(d.pace)) d.pace="std";
@@ -1385,8 +1403,9 @@ function makeMath(rangeId){
   /* ボス（ぜんぶミックス）は 半分を「いま ならって いる ところ」から出す */
   if(rangeId==="all" && Math.random()<0.5){ const recent=mathPool("now"); if(recent.length) pool=recent; }
   const u=pool[Math.floor(Math.random()*pool.length)];
-  /* ⚡おうよう（2階）：ちょうしで出る割合が変わる（🔥=40%・ふつう=15%・🌱=出ない） */
-  const advGen=MATH_ADV[u.id];
+  /* ⚡おうよう（2階）：ちょうしで出る割合が変わる（🔥=40%・ふつう=15%・🌱=出ない）
+     u.adv＝教科書セットの単元（kwu…）が参照する元の単元id（data/book-*.js） */
+  const advGen=MATH_ADV[u.adv||u.id];
   const advRate = form==="hot" ? 0.4 : form==="cool" ? 0 : 0.15;
   if(advGen && rangeId!=="bun" && Math.random()<advRate){
     const aq=advGen(); aq.adv=true; aq.unit=u.id; aq.ulabel=u.name;
@@ -1587,6 +1606,13 @@ function applyGradePack(){
   KANJI_MONTH_ORDER=p.kanjiMonthOrder; PRE_KANJI=p.preKanji; MOJI=p.moji||null;
   /* しゃかい・りか・えいごの引き出し（データのある学年だけ 教科が解放される） */
   SOC_UNITS=p.socUnits||null; SCI_UNITS=p.sciUnits||null; ENG_UNITS=p.engUnits||null;
+  /* 教科書セット（川口など）：学年の引き出しの上から 単元カレンダーだけ重ねる（data/book-*.js） */
+  const bp=(BOOK_PACKS[D&&D.book]||{})[D&&D.grade];
+  if(bp){
+    if(bp.mathUnits) MATH_UNITS=bp.mathUnits;
+    if(bp.sciUnits) SCI_UNITS=bp.sciUnits;
+    if(bp.socUnits) SOC_UNITS=bp.socUnits;
+  }
   KNOWN_KANJI=null;   /* 学年が変わると 学習ずみ漢字も 変わる */
 }
 /* 教科が今の学年で あそべるか（じゅんびちゅう判定） */
