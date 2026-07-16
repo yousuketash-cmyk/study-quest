@@ -53,6 +53,14 @@
   <div id="result"></div>
 </div>
 
+<!-- 問題データの倉庫（単元の名前と順序を流用する。読み込み順は index.html と同じ） -->
+<script src="data/pack-g1.js"></script>
+<script src="data/pack-g3.js"></script>
+<script src="data/pack-g6.js"></script>
+<script src="data/subjects-extra.js"></script>
+<script src="data/advanced.js"></script>
+<script src="data/dokkai.js"></script>
+<script src="data/book-kawaguchi.js"></script>
 <script>
 const CLOUD_URL="https://vcrsoxekorhgcpicexjl.supabase.co";
 const CLOUD_KEY="sb_publishable_ZcBgiM-YOdHMnSjd3_xY6w_zoS8f6uE";
@@ -94,6 +102,54 @@ async function load(){
   try{ dayRows=await rpc("sq_admin_days",{p_code:code, p_pin:pin}); }catch(e){ dayRows=null; }
   hint.textContent="";
   render(rows, dayRows||[]);
+}
+
+/* ===== 単元ごとの すすみぐあい（実際に解いた記録から。カレンダー判定はしない） ===== */
+function unitListsFor(d){
+  const grade=d.grade||3;
+  const packs={
+    1:{math:MATH_UNITS_G1},
+    3:{math:MATH_UNITS_G3, sci:SCI_UNITS_G3, soc:SOC_UNITS_G3, eng:ENG_UNITS_G3},
+    6:{math:MATH_UNITS_G6, sci:SCI_UNITS_G6, soc:SOC_UNITS_G6, eng:ENG_UNITS_G6},
+  };
+  const p=Object.assign({}, packs[grade]||packs[3]);
+  /* 教科書セット（かわぐち等）：単元カレンダーの差しかえを ゲームと同じに再現 */
+  const bp=(typeof BOOK_PACKS!=="undefined" && BOOK_PACKS[d.book] ? BOOK_PACKS[d.book] : {})[grade];
+  if(bp){ if(bp.mathUnits) p.math=bp.mathUnits; if(bp.sciUnits) p.sci=bp.sciUnits; if(bp.socUnits) p.soc=bp.socUnits; }
+  return [
+    {label:"🔢 算数",   sub:"math",    units:p.math},
+    {label:"🔬 理科",   sub:"science", units:p.sci},
+    {label:"🗺️ 社会",   sub:"social",  units:p.soc},
+    {label:"🔤 えいご", sub:"english", units:p.eng},
+  ].filter(x=>x.units && x.units.length);
+}
+/* ゲーム内「きろくルーム」と同じランク式（正解×2−まちがい を 8ポイントで1ランク） */
+function unitRankOf(a){ const pts=Math.max(0, a.ok*2-(a.n-a.ok)); return Math.min(20, 1+Math.floor(pts/8)); }
+function rankBadge(r){ return r>=20?"👑":r>=15?"💎":r>=10?"🥇":r>=5?"🥈":"🥉"; }
+function unitProgressHtml(d){
+  const agg={};
+  (d.log||[]).forEach(e=>{ if(!e.u) return; const k=e.sub+"|"+e.u; (agg[k]=agg[k]||{n:0,ok:0}); agg[k].n++; agg[k].ok+=e.ok?1:0; });
+  let html="";
+  unitListsFor(d).forEach(sec=>{
+    let rows="", started=0;
+    sec.units.forEach(u=>{
+      const a=agg[sec.sub+"|"+u.id];
+      if(a){
+        started++;
+        const acc=a.ok/a.n, r=unitRankOf(a);
+        rows+=`<div class="bar"><div class="nm" style="width:170px;">${rankBadge(r)} ${esc(u.name)}</div>
+          <div class="tr"><div class="fl" style="width:${Math.round(acc*100)}%; background:${accColor(acc)};"></div></div>
+          <div class="pc" style="width:110px;">${Math.round(acc*100)}%・${a.n}問・R${r}</div></div>`;
+      }else{
+        rows+=`<div class="bar" style="opacity:.4;"><div class="nm" style="width:170px;">・ ${esc(u.name)}</div>
+          <div class="tr"></div><div class="pc" style="width:110px;">まだ</div></div>`;
+      }
+    });
+    html+=`<details style="margin-top:6px;"><summary style="font-size:13px; font-weight:800; color:#486581; cursor:pointer;">
+      ${sec.label}　きろくのある単元 ${started}/${sec.units.length}</summary><div style="margin-top:6px;">${rows}</div></details>`;
+  });
+  if(!html) return '<div class="meta">この学年は 単元の記録が ありません</div>';
+  return html+'<div class="meta" style="margin-top:4px;">※本体に残っている記録（直近3,000問）から計算。国語は単元の記録がないため 分野別で見てください</div>';
 }
 
 /* ===== せいちょうの きろく（日別倉庫から） ===== */
@@ -208,6 +264,8 @@ function render(rows, dayRows){
       <div class="meta" style="text-align:right;">この7日間の合計：${total7n}問・${total7m}分</div>
       <div class="sec">分野別の せいかいりつ</div>
       ${catHtml}
+      <div class="sec">単元ごとの すすみぐあい</div>
+      ${unitProgressHtml(d)}
       <div class="sec">せいちょうの きろく（週ごとの せいかいりつ）</div>
       ${growthHtml((dayRows||[]).filter(x=>x.player_id===r.id).sort((a,b)=>a.d<b.d?-1:1))}
       <div class="note">くわしい分析（集中の続き方・時間帯・気づきのまとめ）は、ゲーム内の「おうちの人へ」で本人のプレイヤーを開くと見られます。この画面は閲覧専用で、記録には影響しません。</div>
