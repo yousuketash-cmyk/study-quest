@@ -804,6 +804,28 @@ const ENEMIES=[
   {e:"👾",n:"バグモン"},{e:"👹",n:"おにこぞう"},{e:"👺",n:"てんぐん"},{e:"👻",n:"おばけろう"},
   {e:"🤖",n:"ガチャロボ"},{e:"🦖",n:"ザウルスくん"},{e:"🎃",n:"パンプキン"},{e:"🐙",n:"タコむし"},
   {e:"🦂",n:"サソリード"},{e:"🧟",n:"ゾンビィ"},
+  {e:"👿",n:"こあくまん"},{e:"💀",n:"ガイコツン"},{e:"🦇",n:"こうもりん"},{e:"🕷️",n:"クモすけ"},
+  {e:"🐛",n:"キャベツむし"},{e:"🦠",n:"バイキンだま"},{e:"👽",n:"うちゅうじん"},{e:"🧱",n:"ブロックン"},
+  {e:"🌪️",n:"たつまきまる"},{e:"🦴",n:"ホネホネけん"},{e:"🐜",n:"ありへいたい"},{e:"🤡",n:"ピエロン"},
+];
+/* シーズン限定の敵（いまの季節だけ登場・毎年自動で再登場＝作り直し不要） */
+const SEASON_ENEMIES=[
+  {e:"🌼",n:"はなビラー",     season:"spring"},
+  {e:"🐌",n:"でんでんぬし",   season:"spring"},
+  {e:"🍡",n:"だんごどろぼう", season:"spring"},
+  {e:"🐞",n:"テントウごろう", season:"spring"},
+  {e:"🦟",n:"チクチクか",     season:"summer"},
+  {e:"🦑",n:"イカすみー",     season:"summer"},
+  {e:"🍧",n:"かきごおりまじん", season:"summer"},
+  {e:"🌴",n:"ヤシのきング",   season:"summer"},
+  {e:"🌾",n:"カカシろう",     season:"autumn"},
+  {e:"🍠",n:"やきいもまじん", season:"autumn"},
+  {e:"🦔",n:"ハリネズミごろう", season:"autumn"},
+  {e:"🕸️",n:"クモのすばん",   season:"autumn"},
+  {e:"🌨️",n:"ゆきぐもん",     season:"winter"},
+  {e:"🗻",n:"ゆきやまおとこ", season:"winter"},
+  {e:"🥶",n:"こごえおに",     season:"winter"},
+  {e:"🌬️",n:"こがらしまん",   season:"winter"},
 ];
 const BOSS={e:"🐲",n:"まとめキング"};
 
@@ -1848,7 +1870,9 @@ function startBattle(sub, range, mode){
   curSub=sub; curRange=range; curMode=mode||"num";
   asked=new Set();   /* このバトルで出した問題（重複防止） */
   const isBoss=!!range.boss;
-  const base = isBoss ? BOSS : ENEMIES[Math.floor(Math.random()*ENEMIES.length)];
+  /* 敵のえらび：通年22種＋いまの季節だけの敵4種 */
+  const epool=ENEMIES.concat(SEASON_ENEMIES.filter(x=>x.season===currentSeason()));
+  const base = isBoss ? BOSS : epool[Math.floor(Math.random()*epool.length)];
   /* ★つよてき：Lv.5から出現。教科の「ちょうし」で出やすさが変わる
      （🔥好調=35%・ふつう=20%・🌱じっくり=出ない）。レベル+3・HP1.25倍、倒すと ごほうび増量 */
   const form=subjectForm(sub.id);
