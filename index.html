@@ -3193,14 +3193,27 @@ function pickQuizUnit(units, rangeId){
   if(rangeId==="all" && Math.random()<0.5){ const recent=knowledgePool(units,"now"); if(recent.length) pool=recent; }
   return pool[Math.floor(Math.random()*pool.length)];
 }
+/* ===== 応用（2階）の出しわけ =====
+   問題に adv:true が付いていたら「応用」。教科の「ちょうし」で出す割合を変える。
+   🔥好調=6割応用 ／ ふつう=2.5割 ／ 🌱じっくり=基本のみ（やさしさは こわさない） */
+function pickQuizQ(u, subId){
+  const adv=u.qs.filter(q=>q.adv), base=u.qs.filter(q=>!q.adv);
+  let pool=u.qs;
+  if(adv.length && base.length){
+    const form=subjectForm(subId);
+    const advRate = form==="hot" ? 0.6 : form==="cool" ? 0 : 0.25;
+    pool = Math.random()<advRate ? adv : base;
+  }
+  return pool[Math.floor(Math.random()*pool.length)];
+}
 function makeKnowledge(subId, rangeId){
   const units=quizUnits(subId), meta=QUIZ_TAG[subId];
   /* 🔥好調のときは「いま」にも 復習を まぜる */
   if(rangeId==="now" && subjectForm(subId)==="hot" && Math.random()<0.3) rangeId="all";
   const u=pickQuizUnit(units, rangeId);
-  const qa=u.qs[Math.floor(Math.random()*u.qs.length)];
+  const qa=pickQuizQ(u, subId);
   return {kind:"read", quiz:true, qk:"q:"+qa.t, qtag:meta.n, qbg:meta.bg, text:qa.t, hint:"", answer:qa.a,
-    choices:shuffle([qa.a].concat(qa.w)), cat:u.cat, unit:u.id, ulabel:u.name};
+    choices:shuffle([qa.a].concat(qa.w)), cat:u.cat, unit:u.id, ulabel:u.name, adv:!!qa.adv};
 }
 /* ===== えいごの出題（意味えらび・聞き取り・英作えらび） ===== */
 function makeEnglish(rangeId){
@@ -3386,6 +3399,7 @@ function loadQ(){
     setupWrite(q);
   }
   if(q.review){ tag.textContent="🔁 "+tag.textContent; }
+  if(q.adv){ tag.textContent="⚡おうよう "+tag.textContent; }   /* 応用（2階）の印 */
 }
 function renderAnswerBox(){
   document.getElementById("answerBox").innerHTML = typed==="" ? '<span class="ph">？</span>' : typed;
@@ -4219,7 +4233,9 @@ function startCheck(subId){
     const meta=QUIZ_TAG[subId];
     const chkU=quizUnits(subId);
     chkU.filter(u=>unitTaughtQ(chkU,u)).forEach(u=>{
-      shuffle(u.qs.slice()).slice(0,2).forEach(qa=>{
+      /* チェック（見立て）は 基本問題だけで はかる（応用が まざると 学年の ものさしが ぶれる） */
+      const baseQs=u.qs.filter(q=>!q.adv);
+      shuffle((baseQs.length?baseQs:u.qs).slice()).slice(0,2).forEach(qa=>{
         qs.push({kind:"read", quiz:true, qk:"q:"+qa.t, qtag:meta.n, qbg:meta.bg, text:qa.t, hint:"", answer:qa.a,
           choices:shuffle([qa.a].concat(qa.w)), cat:u.cat, unit:u.id, ulabel:u.name});
       });
