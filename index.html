@@ -146,6 +146,8 @@
   @keyframes cpulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.14);}}
   /* 図鑑：まだの なかまは シルエット（影絵）で「なんだろう？」を さそう */
   .m-emoji.shadowed, .moncell.locked .m-emoji.shadowed{filter:brightness(0) opacity(.45) !important;}
+  /* キャラ画像：絵文字と同じ場所に同じ大きさ感で収まる（容器の font-size 連動） */
+  .chimg{width:1.2em; height:1.2em; object-fit:contain; vertical-align:-0.2em; pointer-events:none;}
   /* ホームの相棒：タップで よろこぶ */
   .buddy-big{cursor:pointer;}
   .buddy-big.bounce{animation:bounce .55s;}
@@ -653,6 +655,7 @@
 <script src="data/advanced.js"></script>
 <script src="data/dokkai.js"></script>
 <script src="data/book-kawaguchi.js"></script>
+<script src="data/chara-img.js"></script>
 <script>
 /* ============ 相棒モンスター：3コース制（さいしょに えらぶ） ============ */
 const COURSES={
@@ -704,6 +707,12 @@ function allBuddiesMax(){
 }
 function stagesOf(courseId){ return COURSES[courseId || D.course || "dragon"].stages; }
 function stageFor(lv){ let s=stagesOf()[0]; for(const st of stagesOf()){ if(lv>=st.lv) s=st; } return s; }
+/* 相棒の見た目（画像があれば絵・なければ絵文字にフォールバック） */
+function buddyHTML(courseId, stage){
+  const cid = courseId || (D && D.course) || "dragon";
+  const i = COURSES[cid].stages.indexOf(stage);
+  return charaHTML(buddyImg(cid, i), stage.emoji);
+}
 function nextStage(lv){ for(const st of stagesOf()){ if(st.lv>lv) return st; } return null; }
 /* ===== あいぼうレベル（コースごとに べつ育ち） =====
    ぼうけんランク（D.lv）＝本人の成長。敵の強さ・攻撃力・かいほう基準。引き継ぐ。
@@ -880,9 +889,11 @@ function playerPeek(id){
   let d=null;
   try{ d=JSON.parse(localStorage.getItem(keyFor(id))); }catch(e){}
   if(!d || !d.lv || !d.course) return {emoji:"🎒", sub:"はじめて あそぶ"};
-  const stages=(COURSES[d.course]||COURSES.dragon).stages;
+  const cid=(COURSES[d.course]?d.course:"dragon"), stages=COURSES[cid].stages;
   let s=stages[0]; for(const st of stages){ if(d.lv>=st.lv) s=st; }
-  return {emoji:s.emoji, sub:"Lv."+d.lv+"　なかま "+Object.values(d.collected||{}).reduce((n,a)=>n+a.length,0)+"ひき"};
+  const blv=(d.buddy && d.buddy[cid]) ? d.buddy[cid].lv : d.lv;
+  let bs=stages[0]; for(const st of stages){ if(blv>=st.lv) bs=st; }
+  return {emoji:charaHTML(buddyImg(cid, stages.indexOf(bs)), bs.emoji), sub:"Lv."+d.lv+"　なかま "+Object.values(d.collected||{}).reduce((n,a)=>n+a.length,0)+"ひき"};
 }
 function renderPlayers(){
   const list=document.getElementById("playerList"); list.innerHTML="";
@@ -1191,14 +1202,14 @@ function renderHeader(){
   document.getElementById("lvNum").textContent=D.lv;
   document.getElementById("gemNum").textContent=D.gems;
   document.getElementById("buddyName").textContent=st.name;
-  document.getElementById("miniBuddy").textContent=st.emoji;
+  document.getElementById("miniBuddy").innerHTML=buddyHTML(null, st);
   document.getElementById("xpNow").textContent=D.xp;
   document.getElementById("xpNeed").textContent=need;
   document.getElementById("xpFill").style.width=Math.min(100,(D.xp/need)*100)+"%";
 }
 function renderHome(){
   const st=stageFor(buddyLv());
-  document.getElementById("homeBuddy").textContent=st.emoji;
+  document.getElementById("homeBuddy").innerHTML=buddyHTML(null, st);
   document.getElementById("homeCaption").textContent=st.name+"（Lv."+buddyLv()+"）";
   document.getElementById("homeSub").textContent=st.msg;
   document.getElementById("totalCount").textContent=D.total;
@@ -1887,8 +1898,8 @@ function startBattle(sub, range, mode){
   sessActive=true; sessStart=Date.now(); sessCount=0; sessSub=sub.id;
   document.getElementById("enemyName").textContent="Lv."+enemy.lv+" "+enemy.n;
   const es=document.getElementById("enemySprite");
-  es.classList.remove("down","zukkoke"); es.textContent=enemy.e;
-  document.getElementById("allySprite").textContent=stageFor(buddyLv()).emoji;   /* 相棒も 出げき */
+  es.classList.remove("down","zukkoke"); es.innerHTML=charaHTML(enemyImg(enemy.n), enemy.e);
+  document.getElementById("allySprite").innerHTML=buddyHTML(null, stageFor(buddyLv()));   /* 相棒も 出げき */
   document.getElementById("allyWrap").className="ally-wrap";
   document.getElementById("ehpMax").textContent=enemy.hpMax;
   renderHP(); renderHearts(); updateCombo();
@@ -2668,7 +2679,7 @@ function renderStarter(){
     const line=c.stages.filter(s=>!s.secret).map(s=>s.emoji).join("→");
     const b=document.createElement("button");
     b.className="rangebtn";
-    b.innerHTML=`<div style="text-align:left;"><div class="rname">${c.stages[0].emoji} ${c.name}</div>
+    b.innerHTML=`<div style="text-align:left;"><div class="rname">${charaHTML(buddyImg(key,0), c.stages[0].emoji)} ${c.name}</div>
       <div class="rsub">${c.bonusText}　${line}</div></div><div class="go">▶</div>`;
     b.onclick=()=>chooseStarter(key);
     list.appendChild(b);
@@ -2704,7 +2715,8 @@ function courseGridHtml(){
     const pickable = owned || (c.secret ? allBuddiesMax() : D.courses.filter(k=>!COURSES[k].secret).length<unlockedCourseSlots());
     /* コースごとの あいぼうレベルで 見た目が決まる（もっていない子は Lv.1 スタート） */
     const blv=(D.buddy && D.buddy[key]) ? D.buddy[key].lv : 1;
-    const emoji=(function(){ let s=c.stages[0]; for(const st of c.stages){ if(blv>=st.lv) s=st; } return s; })().emoji;
+    const cst=(function(){ let s=c.stages[0]; for(const st of c.stages){ if(blv>=st.lv) s=st; } return s; })();
+    const emoji=charaHTML(buddyImg(key, c.stages.indexOf(cst)), cst.emoji);
     let sub;
     if(current) sub="そうびちゅう（Lv."+blv+"）";
     else if(owned) sub="Lv."+blv+"・タップで こうたい";
@@ -2826,7 +2838,7 @@ function maybeDayDone(next){
   if(D.dayWins && D.dayWins.n>=3 && !D.dayWins.shown){
     D.dayWins.shown=true; saveData();
     const st=stageFor(buddyLv());
-    document.getElementById("ddEmoji").textContent=st.emoji;
+    document.getElementById("ddEmoji").innerHTML=buddyHTML(null, st);
     document.getElementById("ddMsg").innerHTML=
       "きょうは "+D.dayWins.n+"かいも かった！<br>"+st.name+"も おなかいっぱい だいまんぞく！<br>また あした あそぼうね。";
     document.getElementById("dayDone").classList.add("show");
@@ -3024,7 +3036,7 @@ function playLevelup(){
   const lv=pendingLevelups.shift();
   const st=stageFor(lv);
   const evolve = stagesOf().find(s=>s.lv===lv);
-  document.getElementById("luEmoji").textContent=st.emoji;
+  document.getElementById("luEmoji").innerHTML=buddyHTML(null, st);
   const msg=document.getElementById("luMsg");
   const head="Lv."+lv+" になった！ ";
   if(evolve){
@@ -3508,7 +3520,7 @@ function openStatus(){
     : `<div style="font-size:13px;color:#f59e0b;margin-top:6px;font-weight:800;">🌟 さいこうレベル！きみは マスターだ！</div>`;
   const html=`
     <div class="card" style="text-align:center;">
-      <div class="buddy-big"><span>${st.emoji}</span><span class="acc-hat">${equippedEmoji("head")}</span><span class="acc-mate">${equippedEmoji("mate")}</span></div>
+      <div class="buddy-big"><span>${buddyHTML(null, st)}</span><span class="acc-hat">${equippedEmoji("head")}</span><span class="acc-mate">${equippedEmoji("mate")}</span></div>
       <div class="buddy-caption">${st.name}</div>
       <div class="buddy-sub">あいぼう Lv.${b.lv}</div>
       <div class="xpbar" style="margin-top:12px;"><div class="xpfill" style="width:${pct}%"></div></div>
