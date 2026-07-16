@@ -378,6 +378,7 @@
       <div id="gradePick" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
         <button class="pacebtn" data-g="1" onclick="pickGrade(1)">1ねんせい</button>
         <button class="pacebtn on" data-g="3" onclick="pickGrade(3)">3ねんせい</button>
+        <button class="pacebtn" data-g="5" onclick="pickGrade(5)">5ねんせい</button>
         <button class="pacebtn" data-g="6" onclick="pickGrade(6)">6ねんせい</button>
       </div>
       <div id="bookRow">
@@ -655,6 +656,7 @@
 <!-- 問題データの倉庫（学年・教科別）。中身の追加修正はこちらのファイルで -->
 <script src="data/pack-g1.js"></script>
 <script src="data/pack-g3.js"></script>
+<script src="data/pack-g5.js"></script>
 <script src="data/pack-g6.js"></script>
 <script src="data/subjects-extra.js"></script>
 <script src="data/advanced.js"></script>
@@ -1139,7 +1141,7 @@ function normalizeSave(d){
   if(typeof d.trophyOver!=="number") d.trophyOver=0;
   if(!Array.isArray(d.titles)) d.titles=[];
   if(!Array.isArray(d.rarityBonus)) d.rarityBonus=[];
-  if(![1,3,6].includes(d.grade)) d.grade=3;   /* 学年（引き出し）。むかしのデータは 3年生あつかい */
+  if(![1,3,5,6].includes(d.grade)) d.grade=3;   /* 学年（引き出し）。むかしのデータは 3年生あつかい */
   if(!BOOK_PACKS[d.book]) d.book="hadano";   /* 教科書セット。むかしのデータは はだの（啓林・大日本・教出）あつかい */
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
@@ -1654,6 +1656,10 @@ const GRADE_PACKS={
      mathUnits:MATH_UNITS_G3, mathAdv:MATH_ADV_G3, kanji:KANJI_G3, kanjiAlt:KANJI_ALT_G3, sents:SENTS_G3,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G3, preKanji:G1_KANJI+G2_KANJI,
      socUnits:SOC_UNITS_G3, sciUnits:SCI_UNITS_G3, engUnits:ENG_UNITS_G3, dokkai:DOKKAI_G3},
+  /* 5年の preKanji は 1〜3年分まで（4年配当ぶんは 4年パック合流後に足す） */
+  5:{label:"5ねんせい",
+     mathUnits:MATH_UNITS_G5, kanji:KANJI_G5, kanjiAlt:KANJI_ALT_G5, sents:SENTS_G5,
+     kanjiMonthOrder:KANJI_MONTH_ORDER_G5, preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join("")},
   /* 6年の preKanji は 1〜3年分まで（4・5年配当の変換辞書語は少ないので実用上OK） */
   6:{label:"6ねんせい",
      mathUnits:MATH_UNITS_G6, mathAdv:MATH_ADV_G6, kanji:KANJI_G6, kanjiAlt:KANJI_ALT_G6, sents:SENTS_G6,
@@ -3159,6 +3165,7 @@ const CAT_LABEL={add:"たしざん", sub:"ひきざん", mul:"かけざん", div
   frac:"ぶんすう", dec:"しょうすう", box:"□を使った式", bai:"なんばい", zu:"ずけい",
   bun:"文章もんだい", kazu:"かず・ばんめ", kurabe:"くらべかた", moji:"もじあつめ",
   shiki:"文字と式", baai:"場合の数", hi:"比", hirei:"比例・反比例", data:"データ・平均",
+  wariai:"わりあい", sokudo:"速さ", seisu:"整数の せいしつ",
   seiji:"政治とくらし", rekishi:"歴史", kokusai:"世界の中の日本",
   seimei:"生命（体・植物）", busshitsu:"もの・水よう液", chikyu:"地球（月・大地）", energy:"エネルギー（てこ・電気）",
   eigo:"えいご", chiiki:"まちと市", kurashi:"はたらく人", anzen:"安全を守る", dokkai:"よみとり"};
