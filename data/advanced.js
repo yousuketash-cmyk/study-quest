@@ -21,6 +21,40 @@ const MATH_ADV_G1={
     return q(pick(BN_KIDS)+"は れつに ならんで いるよ。まえに "+a+"にん、うしろに "+b+"にん いるよ。れつには みんなで なんにん いる？", a+b+1, "bun"); },
 };
 
+const MATH_ADV_G2={
+  g2u1(){ const kinds=shuffle(G2_GRAPH_ITEMS.slice()).slice(0,3);
+    const nums=shuffle([2,3,4,5,6,7].slice()).slice(0,3);
+    let line=[]; kinds.forEach((k,i)=>{ for(let j=0;j<nums[i];j++) line.push(k[1]); });
+    line=shuffle(line).join("");
+    return q(line+"　ぜんぶで なんこ ある？", nums[0]+nums[1]+nums[2], "data"); },
+  g2u2(){ if(Math.random()<0.5){ const a=rnd(11,40), b=rnd(3,9); return q("□ + "+b+" ＝ "+(a+b)+"　□は いくつ？", a, "add"); }
+    const a=rnd(15,40), b=rnd(3,9); return q("□ − "+b+" ＝ "+(a-b)+"　□は いくつ？", a, "sub"); },
+  g2u5(){ if(Math.random()<0.5){ const a=rnd(12,40), b=rnd(11,40); return q(a+" + □ ＝ "+(a+b)+"　□は いくつ？", b, "add"); }
+    const b=rnd(12,30), d=rnd(3,9);
+    if(Math.random()<0.5) return q("あかい 花は あおい 花より "+d+"本 おおいです。あおい 花は "+b+"本。あかい 花は なん本？", b+d, "bun");
+    return q("あおい リボンは あかい リボンより "+d+"cm みじかいです。あかい リボンは "+b+"cm。あおい リボンは なんcm？", b-d, "bun"); },
+  g2u6(){ if(Math.random()<0.5){ const n=rnd(30,90)*10; return q(n+"は 10が なんこ あつまった かず？", n/10, "big"); }
+    const a=rnd(3,9); return q((a*100)+"は 10が なんこ あつまった かず？", a*10, "big"); },
+  g2u8(){ const a=rnd(25,50), b=rnd(5,12), c=rnd(5,12);
+    if(Math.random()<0.5) return q("バスに "+a+"人 のって います。"+b+"人 のって きて、"+c+"人 おりました。いま なん人？", a+b-c, "bun");
+    return q("いちごが "+a+"こ あります。あさ "+b+"こ、よる "+c+"こ たべました。のこりは なんこ？", a-b-c, "bun"); },
+  g2u9(){ const a=rnd(13,40), o=rnd(2,8), b=rnd(1,3)*10+o, c=10-o;
+    return q(a+" + "+b+" + "+c+"　（あとの 2つを 先に たすと かんたん）", a+b+c, "add"); },
+  g2u10(){ if(Math.random()<0.5){ const base=rnd(2,4); return q(base+"cmの 2ばいの、そのまた 2ばいは なんcm？", base*4, "bai"); }
+    const a=rnd(3,5), b=rnd(3,5); return q("●が 1れつに "+a+"こずつ "+b+"れつ ならんで います。しきは "+a+" × "+b+"。ぜんぶで なんこ？", a*b, "mul"); },
+  g2u11(){ const dan=pick([6,7,8]), b=rnd(3,7), c=rnd(2,5), it=pick(BN_ITEMS);
+    return q("1ふくろ "+dan+"こ入りの "+it+"を "+b+"ふくろと、ばらで "+c+"こ 買いました。ぜんぶで なんこ？", dan*b+c, "bun"); },
+  g2u12(){ return qc("ちょうほうけいの かみを、かどから かどへ まっすぐ 1本の 直線で 切ると、なにが 2まい できる？", "ちょっかくさんかくけい", ["ちょっかくさんかくけい","せいほうけい","ちょうほうけい","まる"], "zu"); },
+  g2u13(){ const a=rnd(3,9), b=rnd(3,8);
+    return q(a+" × "+b+" ＝ "+a+" × "+(b-1)+" + □　□は いくつ？", a, "mul"); },
+  g2u14(){ if(Math.random()<0.5){ const a=rnd(1,3), b=rnd(2,9)*10, c=rnd(1,5)*10; return q(a+"m"+b+"cmの テープから "+c+"cm 切りとると、のこりは なんcm？", a*100+b-c, "tani"); }
+    const a=rnd(110,190); return q(a+"cmは なんm なんcm？ …cmの ところだけ こたえてね", a-100, "tani"); },
+  g2u15(){ if(Math.random()<0.5){ const n=rnd(23,89); return q((n*100)+"は 100が なんこ あつまった かず？", n, "big"); }
+    return q("10000より 1 小さい かずは？", 9999, "big"); },
+  g2u17(){ const n=rnd(3,9);
+    return q("ある かずの 2ぶんの1は "+n+"です。ある かずは いくつ？", n*2, "frac"); },
+};
+
 const MATH_ADV_G3={
   u1(){ if(Math.random()<0.5){ const a=rnd(2,9), b=rnd(2,9); return q("□ × "+b+" ＝ "+(a*b)+"　□は いくつ？", a, "mul"); }
     const it=pick(BN_ITEMS), a=rnd(3,9), b=rnd(3,9), c=rnd(2,8);
