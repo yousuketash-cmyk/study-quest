@@ -32,9 +32,9 @@ const MATH_ADV_G3={
     if(Math.random()<0.5) return q("1000円で "+a+"円の パンと "+b+"円の ジュースを 買いました。おつりは なん円？", 1000-a-b, "bun");
     const c=rnd(120,380); return q(pick(BN_KIDS)+"は "+(a+b)+"円 もって いました。"+a+"円 つかって、"+c+"円 もらいました。いま なん円？", b+c, "bun"); },
   u4(){ if(Math.random()<0.5){
-      const m1=pick([40,45,50]), dm=pick([20,25,30,35,40]);
-      let total=m1+dm; if(total===60) total+=5;
-      const mm=total-60, right="10時"+mm+"分";
+      /* m1+dm が ちょうど60分（＝10時0分）になる組は 出さない（検品指摘の修正） */
+      const m1=pick([40,45,50]), dm=pick(m1===40?[25,30,35,40]:[20,25,30,35,40]);
+      const total=m1+dm, mm=total-60, right="10時"+mm+"分";
       const set=new Set([right]);
       ["10時"+(mm+10)+"分", (mm>=15?"10時"+(mm-10)+"分":"11時"+mm+"分"), "9時"+mm+"分"].forEach(c=>{ if(set.size<4 && c!==right) set.add(c); });
       return qc("9時"+m1+"分から "+dm+"分 たつと なん時なん分？", right, [...set], "toki"); }
@@ -95,7 +95,9 @@ const MATH_ADV_G6={
     return q("5人から 3人の そうじ当番を えらぶ 組み合わせは 何通り？", 10, "baai"); },
   g6u7(){ const r=rnd(2,6), half=Math.round(r*r*3.14/2*100)/100;
     const right=""+half, set=new Set([right]);
-    [r*r*3.14, r*2*3.14, Math.round(r*r*3.14/4*100)/100].forEach(x=>{ const c=""+(Math.round(x*100)/100); if(set.size<4 && c!==right) set.add(c); });
+    /* 候補を多めに用意（r=2・r=4 は 円周と全円が同値になり 4択が欠けるため） */
+    [r*r*3.14, r*2*3.14, Math.round(r*r*3.14/4*100)/100, Math.round((r+1)*(r+1)*3.14/2*100)/100, r*r*2]
+      .forEach(x=>{ const c=""+(Math.round(x*100)/100); if(set.size<4 && c!==right && !set.has(c)) set.add(c); });
     return qc("半径 "+r+"cmの 半円の 面積は 何cm²？（円周率 3.14）", right, [...set], "zu"); },
   g6u8(){ const a=rnd(2,6)*5, b=rnd(2,6)*2, h=rnd(2,5);
     return q("たて "+a+"cm・よこ "+b+"cmの 水そうに 石を しずめたら、水面が "+h+"cm 上がりました。石の 体積は 何cm³？", a*b*h, "zu"); },
