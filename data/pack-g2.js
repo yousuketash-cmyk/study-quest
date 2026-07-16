@@ -135,7 +135,8 @@ const MATH_UNITS_G2=[
     const b=rnd(1,9)*10; return q((100+b)+"cmは 1mと なんcm？", b, "tani"); },
     bun(){
       const a=rnd(3,6), b=rnd(1,a-1);
-      if(Math.random()<0.5) return q("りょうての はばは 1m20cmでした。1m20cmは なんcm？", 120, "bun");
+      if(Math.random()<0.5){ const c=rnd(1,4), d=rnd(1,9)*10;
+        return q("りょうての はばは "+c+"m"+d+"cmでした。"+c+"m"+d+"cmは なんcm？", c*100+d, "bun"); }
       return q(a+"mの テープから "+b+"m つかいました。のこりは なんm？", a-b, "bun"); }},
   {id:"g2u15", name:"1000を こえる 数", term:3, s:[2,10], gen(){
     const v=rnd(1,5);

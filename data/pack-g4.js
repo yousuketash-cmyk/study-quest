@@ -216,12 +216,12 @@ const MATH_ADV_G4={
   g4u9(){ if(Math.random()<0.5) return qc("対角線が 垂直に 交わる 四角形は？", "ひし形", ["ひし形","台形","長方形","平行四辺形"], "zu");
     return qc("対角線の 長さが 等しく、それぞれの まん中で 交わる 四角形は？", "長方形", ["長方形","台形","ひし形","平行四辺形"], "zu"); },
   g4u10(){ const d=rnd(3,6), w=rnd(1,2), x=rnd(1,d-1), y=rnd(1,d-1), n=w*d+x+y;
-    const w2=Math.floor(n/d), r2=n%d;
-    const right=(r2===0)? w2+"" : w2+"と"+r2+"/"+d;
-    const set=new Set([right]);
-    [ (w2+1)+"と"+Math.max(1,r2)+"/"+d, w+"と"+(x+y)+"/"+d, n+"/"+d===right?null:(n+"/"+d), w2+"と"+(r2+1)+"/"+d ]
-      .forEach(c=>{ if(c && set.size<4 && c!==right) set.add(c); });
-    return qc(w+"と"+x+"/"+d+" ＋ "+y+"/"+d+"　答えを 帯分数か 整数で 表すと？", right, [...set], "frac"); },
+    /* fmt: 分子mを帯分数か整数の正規形にする（正解と同値の別表記が選択肢に混ざる事故を防ぐ） */
+    const fmt=m=>{ const W=Math.floor(m/d), R=m%d; return (R===0)? W+"" : W+"と"+R+"/"+d; };
+    const right=fmt(n);
+    /* 誤答は数値も正解とちがう近い値だけ：1/dたりない・1/d多い（くり上げミス）・整数部+1 */
+    return qc(w+"と"+x+"/"+d+" ＋ "+y+"/"+d+"　答えを 帯分数か 整数で 表すと？", right,
+      [right, fmt(n-1), fmt(n+1), fmt(n+d)], "frac"); },
   g4u11(){ const x=rnd(3,9); return q("1辺 1cmの 正三角形を 横に 1列 "+x+"こ ならべた 形の まわりの 長さは 何cm？（となり合う 辺は くっつく）", x+2, "shiki"); },
   g4u12(){ const a=rnd(6,12), b=rnd(6,12), c=rnd(2,4), d=rnd(2,4);
     return q("たて "+a+"cm・よこ "+b+"cmの 長方形から、たて "+c+"cm・よこ "+d+"cmの 長方形を 切り取りました。のこりの 面積は 何cm²？", a*b-c*d, "zu"); },
