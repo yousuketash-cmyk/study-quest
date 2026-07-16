@@ -532,6 +532,7 @@
     <div class="sectitle">タマゴガチャ</div>
     <p class="secsub">なにが でるかは おたのしみ！</p>
     <div class="card" style="text-align:center;">
+      <div id="gachaSeason" style="font-size:13px; font-weight:800; color:#f0640c; background:#fff7ed; border-radius:10px; padding:8px; margin-bottom:8px;"></div>
       <div class="egg" id="gachaEgg">🥚</div>
       <div style="font-weight:800; color:#627d98; margin-top:6px;">1かい 💎30</div>
       <div style="font-size:12px; color:#829ab1; margin-top:4px;" id="gachaPityText"></div>
@@ -2454,13 +2455,69 @@ const GACHA_ITEMS=[
   {id:"m_dragon",  kind:"mate", emoji:"🐉", name:"まぼろしのドラゴン", r:4},
   {id:"m_peacock", kind:"mate", emoji:"🦚", name:"ごうかクジャク",     r:4},
 ];
-function gachaItemById(id){ return GACHA_ITEMS.find(x=>x.id===id); }
+/* シーズンげんてい：4季×9種を一度だけ作り、カレンダーで自動的に入れ替わる（毎年再登場・作り直し不要） */
+const SEASONS={
+  spring:{name:"はる", emoji:"🌸", months:"3〜5月"},
+  summer:{name:"なつ", emoji:"🌻", months:"6〜8月"},
+  autumn:{name:"あき", emoji:"🍂", months:"9〜11月"},
+  winter:{name:"ふゆ", emoji:"⛄", months:"12〜2月"},
+};
+const SEASON_COMP=150;   /* その季節の9種コンプで一度だけ 💎150 */
+function currentSeason(d){ const m=(d||new Date()).getMonth()+1; return (m>=3&&m<=5)?"spring":(m>=6&&m<=8)?"summer":(m>=9&&m<=11)?"autumn":"winter"; }
+const SEASON_ITEMS=[
+  /* はる（3〜5月） */
+  {id:"h_spr_tulip",  kind:"head", emoji:"🌷", name:"チューリップの ぼうし", r:1, season:"spring"},
+  {id:"m_spr_bee",    kind:"mate", emoji:"🐝", name:"はたらきものバチ",     r:1, season:"spring"},
+  {id:"m_spr_hiyoko", kind:"mate", emoji:"🐥", name:"ぴよぴよヒヨコ",       r:1, season:"spring"},
+  {id:"h_spr_hanataba",kind:"head",emoji:"💐", name:"はなたばの かんむり",  r:2, season:"spring"},
+  {id:"m_spr_usagi",  kind:"mate", emoji:"🐇", name:"はるかぜウサギ",       r:2, season:"spring"},
+  {id:"m_spr_hato",   kind:"mate", emoji:"🕊️", name:"はるつげバト",         r:2, season:"spring"},
+  {id:"h_spr_mankai", kind:"head", emoji:"🌺", name:"まんかいの かんむり",  r:3, season:"spring"},
+  {id:"m_spr_koi",    kind:"mate", emoji:"🎏", name:"そらおよぐ コイのぼり", r:3, season:"spring"},
+  {id:"m_spr_fairy",  kind:"mate", emoji:"🧚", name:"はるの ようせい",      r:4, season:"spring"},
+  /* なつ（6〜8月） */
+  {id:"h_sum_suika",  kind:"head", emoji:"🍉", name:"スイカの ぼうし",      r:1, season:"summer"},
+  {id:"m_sum_kani",   kind:"mate", emoji:"🦀", name:"ちょきちょきガニ",     r:1, season:"summer"},
+  {id:"h_sum_soft",   kind:"head", emoji:"🍦", name:"ソフトクリームぼうし", r:1, season:"summer"},
+  {id:"h_sum_mask",   kind:"head", emoji:"🤿", name:"シュノーケルマスク",   r:2, season:"summer"},
+  {id:"m_sum_kai",    kind:"mate", emoji:"🐚", name:"うたう ホラガイ",      r:2, season:"summer"},
+  {id:"m_sum_flamingo",kind:"mate",emoji:"🦩", name:"トロピカルフラミンゴ", r:2, season:"summer"},
+  {id:"h_sum_hanabi", kind:"head", emoji:"🎆", name:"はなびの かんむり",    r:3, season:"summer"},
+  {id:"m_sum_kujira", kind:"mate", emoji:"🐳", name:"しおふきクジラ",       r:3, season:"summer"},
+  {id:"h_sum_trident",kind:"head", emoji:"🔱", name:"かいていの トライデント", r:4, season:"summer"},
+  /* あき（9〜11月） */
+  {id:"h_aut_donguri",kind:"head", emoji:"🌰", name:"どんぐりぼうし",       r:1, season:"autumn"},
+  {id:"m_aut_risu",   kind:"mate", emoji:"🐿️", name:"もぐもぐリス",         r:1, season:"autumn"},
+  {id:"m_aut_korogi", kind:"mate", emoji:"🦗", name:"うたう コオロギ",      r:1, season:"autumn"},
+  {id:"h_aut_momiji", kind:"head", emoji:"🍁", name:"もみじの かんむり",    r:2, season:"autumn"},
+  {id:"m_aut_kuma",   kind:"mate", emoji:"🐻", name:"はらぺこグマ",         r:2, season:"autumn"},
+  {id:"m_aut_kinoko", kind:"mate", emoji:"🍄", name:"まいごの キノコ",      r:2, season:"autumn"},
+  {id:"h_aut_mangetsu",kind:"head",emoji:"🌕", name:"まんげつの かんむり",  r:3, season:"autumn"},
+  {id:"m_aut_shika",  kind:"mate", emoji:"🦌", name:"もりの シカおう",      r:3, season:"autumn"},
+  {id:"h_aut_mikazuki",kind:"head",emoji:"🌙", name:"みかづきの ティアラ",  r:4, season:"autumn"},
+  /* ふゆ（12〜2月） */
+  {id:"h_win_mafura", kind:"head", emoji:"🧣", name:"あったかマフラー",     r:1, season:"winter"},
+  {id:"m_win_yukidaruma",kind:"mate",emoji:"⛄", name:"ゆきだるまくん",     r:1, season:"winter"},
+  {id:"m_win_shirokuma",kind:"mate",emoji:"🐻‍❄️", name:"こぐまの シロ",      r:1, season:"winter"},
+  {id:"h_win_momi",   kind:"head", emoji:"🎄", name:"もみのき ぼうし",      r:2, season:"winter"},
+  {id:"m_win_azarashi",kind:"mate",emoji:"🦭", name:"ごろごろアザラシ",     r:2, season:"winter"},
+  {id:"m_win_ice",    kind:"mate", emoji:"🧊", name:"こおりの キューブくん", r:2, season:"winter"},
+  {id:"h_win_aurora", kind:"head", emoji:"🎇", name:"オーロラの かんむり",  r:3, season:"winter"},
+  {id:"m_win_swan",   kind:"mate", emoji:"🦢", name:"こおりの スワン",      r:3, season:"winter"},
+  {id:"m_win_sori",   kind:"mate", emoji:"🛷", name:"そらとぶ まほうのソリ", r:4, season:"winter"},
+];
+function allGachaItems(){ return GACHA_ITEMS.concat(SEASON_ITEMS); }
+function gachaItemById(id){ return allGachaItems().find(x=>x.id===id); }
 function ownsGachaItem(it){ return (it.kind==="head" ? D.skins : D.mates).includes(it.id); }
 function starsOf(r){ return "★".repeat(r); }
 
 function openGacha(){ renderGacha(); show("scGacha"); }
 function renderGacha(){
   document.getElementById("gachaGems").textContent=D.gems;
+  const cs=currentSeason(), sm=SEASONS[cs];
+  const sown=SEASON_ITEMS.filter(x=>x.season===cs && ownsGachaItem(x)).length;
+  document.getElementById("gachaSeason").innerHTML=
+    sm.emoji+" いまは <b>"+sm.name+"ガチャ</b>！ "+sm.name+"げんていの なかま "+sown+"/9（"+sm.months+"だけ）";
   const left=10-D.gachaPity;
   document.getElementById("gachaPityText").textContent="あと "+left+" かいで ☆☆☆いじょう かくてい！";
   const btn=document.getElementById("gachaBtn");
@@ -2483,18 +2540,28 @@ function gachaPull(){
   D.gems-=GACHA_COST;
   const forceHigh = D.gachaPity>=9;
   const r=rollRarity(forceHigh);
-  const pool=GACHA_ITEMS.filter(x=>x.r===r);
+  /* いまの季節のシーズンげんていも いっしょに 抽選プールへ */
+  const pool=GACHA_ITEMS.filter(x=>x.r===r).concat(SEASON_ITEMS.filter(x=>x.r===r && x.season===currentSeason()));
   const item=pool[Math.floor(Math.random()*pool.length)];
   const dup=ownsGachaItem(item);
-  let compBonus=0;
+  let compBonus=0, seasonBonus=0;
   if(!dup){
     (item.kind==="head" ? D.skins : D.mates).push(item.id);
-    /* おなじ★を ぜんぶ あつめたら 一度だけ コンプリートボーナス */
+    /* おなじ★を ぜんぶ あつめたら 一度だけ コンプリートボーナス（通年の36種だけで判定） */
     if(!Array.isArray(D.rarityBonus)) D.rarityBonus=[];
     if(!D.rarityBonus.includes(r) && GACHA_ITEMS.filter(x=>x.r===r).every(x=>ownsGachaItem(x))){
       D.rarityBonus.push(r);
       compBonus=RARITY[r].comp;
       addGems(compBonus);
+    }
+    /* その季節の9種コンプでも 一度だけ ボーナス */
+    if(item.season){
+      if(!Array.isArray(D.seasonBonus)) D.seasonBonus=[];
+      if(!D.seasonBonus.includes(item.season) && SEASON_ITEMS.filter(x=>x.season===item.season).every(x=>ownsGachaItem(x))){
+        D.seasonBonus.push(item.season);
+        seasonBonus=SEASON_COMP;
+        addGems(seasonBonus);
+      }
     }
   }
   D.gachaPity = (r>=3) ? 0 : D.gachaPity+1;
@@ -2504,18 +2571,20 @@ function gachaPull(){
   const egg=document.getElementById("gachaEgg");
   egg.classList.remove("roll"); void egg.offsetWidth; egg.classList.add("roll");
   sfx("gachaRoll");
-  setTimeout(()=>{ gachaBusy=false; showGachaResult(item, dup, compBonus); }, 1150);
+  setTimeout(()=>{ gachaBusy=false; showGachaResult(item, dup, compBonus, seasonBonus); }, 1150);
 }
-function showGachaResult(item, dup, compBonus){
+function showGachaResult(item, dup, compBonus, seasonBonus){
   const meta=RARITY[item.r];
   const st=document.getElementById("grStars");
   st.textContent=starsOf(item.r); st.style.color=meta.col;
   document.getElementById("grEmoji").textContent=item.emoji;
   const nm=document.getElementById("grName");
   nm.textContent=item.name; nm.style.color=meta.col;
-  let resMsg = meta.name+"（"+(item.kind==="head"?"あたまの スキン":"おとも")+"）<br>" +
+  const seasonTag = item.season ? SEASONS[item.season].emoji+SEASONS[item.season].name+"げんてい " : "";
+  let resMsg = seasonTag+meta.name+"（"+(item.kind==="head"?"あたまの スキン":"おとも")+"）<br>" +
     (dup ? "ダブり！ 💎+"+meta.refund+" に へんしん！" : "はじめての なかまいり！ きせかえは「じぶんの ステータス」から");
   if(compBonus) resMsg+="<br>🎊 "+starsOf(item.r)+" コンプリート！ ボーナス 💎+"+compBonus+"！";
+  if(seasonBonus) resMsg+="<br>🎊 "+SEASONS[item.season].name+"げんてい ぜんぶ コンプリート！ ボーナス 💎+"+seasonBonus+"！";
   document.getElementById("grMsg").innerHTML=resMsg;
   document.getElementById("grAgain").style.display = D.gems>=GACHA_COST ? "block" : "none";
   document.getElementById("gachaResult").classList.add("show");
@@ -2546,7 +2615,7 @@ function addGems(n){
 }
 
 /* ============ あいぼうコース（さいしょに えらぶ・あとで ふやせる） ============ */
-function hasUR(){ return GACHA_ITEMS.some(it=>it.r===4 && ownsGachaItem(it)); }
+function hasUR(){ return allGachaItems().some(it=>it.r===4 && ownsGachaItem(it)); }
 function unlockedCourseSlots(){ return 1 + (D.lv>=10?1:0) + (hasUR()?1:0); }
 function renderStarter(){
   const list=document.getElementById("starterList"); list.innerHTML="";
@@ -2605,7 +2674,9 @@ function skinGridHtml(kind){
   const owned = kind==="head" ? D.skins : D.mates;
   const slot = kind==="head" ? "head" : "mate";
   let cells="";
-  GACHA_ITEMS.filter(x=>x.kind===kind).forEach(it=>{
+  /* シーズンげんていは「持っているもの」と「いまの季節のぶん」だけ 並べる */
+  const items=GACHA_ITEMS.concat(SEASON_ITEMS.filter(it=>owned.includes(it.id) || it.season===currentSeason()));
+  items.filter(x=>x.kind===kind).forEach(it=>{
     const has=owned.includes(it.id), eq=D.equip[slot]===it.id;
     const cls="skincell"+(eq?" eq":"")+(has?"":" lock");
     const click=has ? ` onclick="equipToggle('${kind}','${it.id}')"` : "";
@@ -2974,6 +3045,33 @@ function openDex(){
   msec.innerHTML=`<div class="dexsub-head"><span>🥚 ガチャの なかま</span><span class="dcount">${mgot}/${mates.length}</span></div>
     <div class="card" style="margin-top:0;"><div class="dexgrid">${mcells}</div></div>`;
   body.appendChild(msec);
+  /* シーズンげんてい（いまの季節は中身が見える・ほかの季節は「あえる時期」を予告） */
+  const csn=currentSeason();
+  const sgot=SEASON_ITEMS.filter(it=>ownsGachaItem(it)).length;
+  let sHtml="";
+  ["spring","summer","autumn","winter"].forEach(sk=>{
+    const sm=SEASONS[sk];
+    const items=SEASON_ITEMS.filter(x=>x.season===sk);
+    const got=items.filter(x=>ownsGachaItem(x)).length;
+    const now = sk===csn;
+    const note = now ? "いま でてるよ！" : sm.months+"に あえるよ";
+    let cells="";
+    items.forEach(it=>{
+      const owned=ownsGachaItem(it);
+      /* いまの季節＝シルエットでチラ見せ／ほかの季節＝❓のまま おたのしみ */
+      const em = owned ? it.emoji : (now ? it.emoji : "❓");
+      cells+=`<div class="moncell${owned?"":" locked"}">
+        <div class="m-emoji${owned?"":" shadowed"}">${em}</div>
+        <div class="m-name">${owned?it.name:"？？？"}</div>
+        <div class="mstars" style="color:${RARITY[it.r].col};">${starsOf(it.r)}</div></div>`;
+    });
+    sHtml+=`<div style="font-weight:800; font-size:13px; color:${now?"#f0640c":"#829ab1"}; margin:${sk==="spring"?"0":"10px"} 0 4px;">
+      ${sm.emoji} ${sm.name}げんてい（${note}）　${got}/${items.length}</div><div class="dexgrid">${cells}</div>`;
+  });
+  const ssec=document.createElement("div"); ssec.className="dexsub";
+  ssec.innerHTML=`<div class="dexsub-head"><span>🎁 シーズンげんてい</span><span class="dcount">${sgot}/${SEASON_ITEMS.length}</span></div>
+    <div class="card" style="margin-top:0;">${sHtml}</div>`;
+  body.appendChild(ssec);
   document.getElementById("dexTotalNow").textContent=collectedCount()+mgot;
   document.getElementById("dexTotalAll").textContent=totalMonsters()+mates.length;
   show("scDex");
