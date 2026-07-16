@@ -54,7 +54,7 @@ const MATH_UNITS_G2=[
     if(Math.random()<0.5){ const a=rnd(12,78), b=rnd(11,98-a); return q(a+" + "+b, a+b, "add"); }
     const a=rnd(30,98), b=rnd(11,a-2); return q(a+" − "+b, a-b, "sub"); },
     bun(){
-      const a=rnd(2,6)*10+rnd(3,8), b=rnd(1,3)*10+rnd(2,9);
+      const a=rnd(4,6)*10+rnd(3,8), b=rnd(1,3)*10+rnd(2,9);
       if(Math.random()<0.5) return q("あめが "+a+"円、ガムが "+b+"円です。あわせて なん円？", a+b, "bun");
       return q(pick(BN_KIDS)+"は カードを "+a+"まい もって います。"+pick(BN_KIDS)+"に "+b+"まい あげると のこりは なんまい？", a-b, "bun"); }},
   {id:"g2u6", name:"100を こえる 数", term:1, s:[6,20], gen(){
@@ -76,7 +76,7 @@ const MATH_UNITS_G2=[
     if(v===4){ const a=rnd(1,5), b=rnd(1,9); return q(a+"L"+b+"dLは ぜんぶで なんdL？", a*10+b, "tani"); }
     const a=rnd(2,6), b=rnd(1,3); return q(a+"L + "+b+"Lは なんL？", a+b, "tani"); },
     bun(){
-      const a=rnd(2,5), b=rnd(1,3);
+      const a=rnd(3,6), b=rnd(1,a-1);
       if(Math.random()<0.5) return q("大きい やかんに 水が "+a+"L、小さい やかんに "+b+"L 入って います。あわせて なんL？", a+b, "bun");
       return q("ジュースが "+a+"L あります。"+b+"L のむと のこりは なんL？", a-b, "bun"); }},
   {id:"g2u8", name:"たし算と ひき算の ひっ算(2)", term:2, s:[9,1], gen(){
@@ -134,7 +134,7 @@ const MATH_UNITS_G2=[
     if(v===3){ const a=rnd(1,4), b=rnd(1,9)*10; return q(a+"m"+b+"cmは ぜんぶで なんcm？", a*100+b, "tani"); }
     const b=rnd(1,9)*10; return q((100+b)+"cmは 1mと なんcm？", b, "tani"); },
     bun(){
-      const a=rnd(2,5), b=rnd(1,3);
+      const a=rnd(3,6), b=rnd(1,a-1);
       if(Math.random()<0.5) return q("りょうての はばは 1m20cmでした。1m20cmは なんcm？", 120, "bun");
       return q(a+"mの テープから "+b+"m つかいました。のこりは なんm？", a-b, "bun"); }},
   {id:"g2u15", name:"1000を こえる 数", term:3, s:[2,10], gen(){

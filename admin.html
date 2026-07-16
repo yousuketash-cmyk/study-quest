@@ -55,6 +55,7 @@
 
 <!-- 問題データの倉庫（単元の名前と順序を流用する。読み込み順は index.html と同じ） -->
 <script src="data/pack-g1.js"></script>
+<script src="data/pack-g2.js"></script>
 <script src="data/pack-g3.js"></script>
 <script src="data/pack-g6.js"></script>
 <script src="data/subjects-extra.js"></script>
@@ -109,6 +110,7 @@ function unitListsFor(d){
   const grade=d.grade||3;
   const packs={
     1:{math:MATH_UNITS_G1},
+    2:{math:MATH_UNITS_G2},
     3:{math:MATH_UNITS_G3, sci:SCI_UNITS_G3, soc:SOC_UNITS_G3, eng:ENG_UNITS_G3},
     6:{math:MATH_UNITS_G6, sci:SCI_UNITS_G6, soc:SOC_UNITS_G6, eng:ENG_UNITS_G6},
   };

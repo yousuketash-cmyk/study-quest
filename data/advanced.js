@@ -35,7 +35,7 @@ const MATH_ADV_G2={
     return q("あおい リボンは あかい リボンより "+d+"cm みじかいです。あかい リボンは "+b+"cm。あおい リボンは なんcm？", b-d, "bun"); },
   g2u6(){ if(Math.random()<0.5){ const n=rnd(30,90)*10; return q(n+"は 10が なんこ あつまった かず？", n/10, "big"); }
     const a=rnd(3,9); return q((a*100)+"は 10が なんこ あつまった かず？", a*10, "big"); },
-  g2u8(){ const a=rnd(20,40), b=rnd(5,15), c=rnd(5,15);
+  g2u8(){ const a=rnd(25,50), b=rnd(5,12), c=rnd(5,12);
     if(Math.random()<0.5) return q("バスに "+a+"人 のって います。"+b+"人 のって きて、"+c+"人 おりました。いま なん人？", a+b-c, "bun");
     return q("いちごが "+a+"こ あります。あさ "+b+"こ、よる "+c+"こ たべました。のこりは なんこ？", a-b-c, "bun"); },
   g2u9(){ const a=rnd(13,40), o=rnd(2,8), b=rnd(1,3)*10+o, c=10-o;
