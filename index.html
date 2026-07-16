@@ -416,7 +416,7 @@
     <div class="card" id="missionCard"></div>
     <div class="footnote">あつめた なかま：<span id="homeDex">0</span> / <span id="homeDexAll">0</span> ひき ／ といた もんだい：<span id="totalCount">0</span>もん</div>
     <div class="reset" onclick="backToPlayers()">👤 <span id="homePlayerName"></span>で あそんでいるよ（こうたいは ここ）</div>
-    <div class="reset" onclick="openReport()">📊 おうちの人へ（きろく・せってい）</div>
+    <div class="reset" onclick="openReportGuard()">📊 おうちの人へ（きろく・せってい）</div>
   </section>
 
   <!-- 教科えらび -->
@@ -613,6 +613,18 @@
     <div class="o-msg" id="lbMsg"></div>
     <div class="stampcard" id="lbStamps"></div>
     <button class="btn mix" onclick="closeLoginBonus()">うけとる！</button>
+  </div>
+
+  <div class="overlay" id="pgate">
+    <div class="o-emoji">🔒</div>
+    <div class="o-title" style="color:#fff;">おうちの人の かくにん</div>
+    <div class="o-msg">かぞくの「あいことば」を いれてね</div>
+    <div style="width:min(320px,86vw);">
+      <input class="nameinput" id="pgateCode" type="password" maxlength="20" placeholder="あいことば" autocomplete="off" onkeydown="if(event.key==='Enter')pgateSubmit()">
+      <div id="pgateHint" style="color:#fca5a5; font-weight:800; font-size:13px; min-height:18px; text-align:center;"></div>
+    </div>
+    <button class="btn mix" onclick="pgateSubmit()">ひらく</button>
+    <button class="btn ghost" onclick="pgateClose()">やめる</button>
   </div>
 
   <div class="overlay" id="loseScreen">
@@ -4544,6 +4556,25 @@ function sampleData(){
   }
   return {log:log, sessions:sessions};
 }
+
+/* おうちの人へ の 入口ロック。かぞくの「あいことば」（クラウド保存と同じもの）を鍵にする。
+   あいことば未設定（この端末だけ・ひもづけ前）の端末は いままでどおり ロックなし */
+function openReportGuard(){
+  if(!(FAMILY && FAMILY.code)){ openReport(); return; }
+  document.getElementById("pgateCode").value="";
+  document.getElementById("pgateHint").textContent="";
+  document.getElementById("pgate").classList.add("show");
+  setTimeout(()=>document.getElementById("pgateCode").focus(), 60);
+}
+function pgateSubmit(){
+  const v=document.getElementById("pgateCode").value.trim();
+  if(FAMILY && v===FAMILY.code){ pgateClose(); openReport(); }
+  else{
+    document.getElementById("pgateHint").textContent="あいことばが ちがうみたい";
+    document.getElementById("pgateCode").value="";
+  }
+}
+function pgateClose(){ document.getElementById("pgate").classList.remove("show"); }
 
 function openReport(sample){
   const data = sample ? sampleData() : {log:(D.log||[]), sessions:(D.sessions||[])};
