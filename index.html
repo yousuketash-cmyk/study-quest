@@ -379,6 +379,7 @@
         <button class="pacebtn" data-g="1" onclick="pickGrade(1)">1ねんせい</button>
         <button class="pacebtn" data-g="2" onclick="pickGrade(2)">2ねんせい</button>
         <button class="pacebtn on" data-g="3" onclick="pickGrade(3)">3ねんせい</button>
+        <button class="pacebtn" data-g="4" onclick="pickGrade(4)">4ねんせい</button>
         <button class="pacebtn" data-g="6" onclick="pickGrade(6)">6ねんせい</button>
       </div>
       <div id="bookRow">
@@ -657,6 +658,8 @@
 <script src="data/pack-g1.js"></script>
 <script src="data/pack-g2.js"></script>
 <script src="data/pack-g3.js"></script>
+<script src="data/pack-g4.js"></script>
+<script src="data/subjects-g4.js"></script>
 <script src="data/pack-g6.js"></script>
 <script src="data/subjects-extra.js"></script>
 <script src="data/advanced.js"></script>
@@ -1660,6 +1663,10 @@ const GRADE_PACKS={
      mathUnits:MATH_UNITS_G3, mathAdv:MATH_ADV_G3, kanji:KANJI_G3, kanjiAlt:KANJI_ALT_G3, sents:SENTS_G3,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G3, preKanji:G1_KANJI+G2_KANJI,
      socUnits:SOC_UNITS_G3, sciUnits:SCI_UNITS_G3, engUnits:ENG_UNITS_G3, dokkai:DOKKAI_G3},
+  4:{label:"4ねんせい",
+     mathUnits:MATH_UNITS_G4, mathAdv:MATH_ADV_G4, kanji:KANJI_G4, kanjiAlt:KANJI_ALT_G4, sents:SENTS_G4,
+     kanjiMonthOrder:KANJI_MONTH_ORDER_G4, preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join(""),
+     socUnits:SOC_UNITS_G4, sciUnits:SCI_UNITS_G4, engUnits:ENG_UNITS_G4, dokkai:DOKKAI_G4},
   /* 6年の preKanji は 1〜3年分まで（4・5年配当の変換辞書語は少ないので実用上OK） */
   6:{label:"6ねんせい",
      mathUnits:MATH_UNITS_G6, mathAdv:MATH_ADV_G6, kanji:KANJI_G6, kanjiAlt:KANJI_ALT_G6, sents:SENTS_G6,
