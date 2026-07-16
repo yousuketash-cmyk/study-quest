@@ -664,6 +664,7 @@ const COURSES={
     {lv:12, emoji:"🐲", name:"こりゅう",      msg:"つばさが はえて ドラゴンに！"},
     {lv:16, emoji:"🐉", name:"りゅう",        msg:"おおきな りゅうに せいちょう！"},
     {lv:20, emoji:"🌟", name:"かがやきりゅう",msg:"でんせつの りゅう！きみは マスターだ！"},
+    {lv:30, emoji:"🌋", name:"マグマりゅうおう", msg:"ひみつの しんか！だいちを ゆるがす りゅうの おう！", secret:true},
   ]},
   sky:{name:"そらコース", emoji:"🦅", bonusText:"けいけんち +10%", stages:[
     {lv:1,  emoji:"🐣", name:"ひよこ",        msg:"うまれたての ひよこ！"},
@@ -673,6 +674,7 @@ const COURSES={
     {lv:12, emoji:"🦅", name:"わし",          msg:"りっぱな つばさ！たかく とぶ！"},
     {lv:16, emoji:"🦚", name:"くじゃく",      msg:"はねが きらきら うつくしい！"},
     {lv:20, emoji:"✨", name:"でんせつのとり",msg:"ひかりを まとう でんせつの とり！"},
+    {lv:30, emoji:"🌈", name:"にじの ふしちょう", msg:"ひみつの しんか！にじを かける ふしぎな とり！", secret:true},
   ]},
   sea:{name:"うみコース", emoji:"🐬", bonusText:"ジェム +10%", stages:[
     {lv:1,  emoji:"🐟", name:"こざかな",      msg:"ちいさな さかな。すいすい およぐ！"},
@@ -682,8 +684,24 @@ const COURSES={
     {lv:12, emoji:"🦈", name:"サメ",          msg:"うみの ハンターに しんか！"},
     {lv:16, emoji:"🐋", name:"クジラ",        msg:"うみで いちばん おおきい！"},
     {lv:20, emoji:"🌊", name:"うみのぬし",    msg:"うみを あやつる でんせつ！"},
+    {lv:30, emoji:"🌀", name:"うみの りゅうじん", msg:"ひみつの しんか！あらしを よぶ うみの かみさま！", secret:true},
+  ]},
+  /* ごほうびコース：3たい ぜんぶ Lv.20（さいしゅうしんか）で かいほう */
+  star:{name:"ほしコース", emoji:"⭐", bonusText:"こうげき・けいけんち・ジェム ぜんぶ +10%", secret:true, stages:[
+    {lv:1,  emoji:"⭐", name:"ほしのこ",      msg:"よぞらから おりてきた ちいさな ほし！"},
+    {lv:3,  emoji:"🌠", name:"ながれぼし",    msg:"しゅーん！ ねがいごとを かなえるよ！"},
+    {lv:5,  emoji:"☄️", name:"すいせいくん",  msg:"びゅんびゅん とびまわる！"},
+    {lv:8,  emoji:"🪐", name:"わくせいまる",  msg:"わっかが かっこいい！"},
+    {lv:12, emoji:"🌞", name:"たいようのせい",msg:"ぽかぽか！ みんなを てらす！"},
+    {lv:16, emoji:"🌌", name:"ギャラクシー",  msg:"うちゅうの ひかりを まとった！"},
+    {lv:20, emoji:"💫", name:"スターマスター",msg:"でんせつの ほし！きみは うちゅういちだ！"},
+    {lv:30, emoji:"🛸", name:"うちゅうの ぬし", msg:"ひみつの しんか！うちゅうを こえた そんざい！", secret:true},
   ]},
 };
+/* 3たい（ドラゴン・そら・うみ）ぜんぶ さいしゅうしんか（Lv.20）したか */
+function allBuddiesMax(){
+  return ["dragon","sky","sea"].every(k=>D.buddy && D.buddy[k] && D.buddy[k].lv>=20);
+}
 function stagesOf(courseId){ return COURSES[courseId || D.course || "dragon"].stages; }
 function stageFor(lv){ let s=stagesOf()[0]; for(const st of stagesOf()){ if(lv>=st.lv) s=st; } return s; }
 function nextStage(lv){ for(const st of stagesOf()){ if(st.lv>lv) return st; } return null; }
@@ -1176,7 +1194,9 @@ function renderHome(){
   tr.textContent="🏆 "+D.trophies+(title?"　「"+title+"」":"")+"　つぎの "+tInfo.label+" まで あと"+tInfo.need+"かい ▶";
   tr.style.display="";
   const evo=winsToNextEvo();
-  document.getElementById("homeEvo").textContent = evo ? `✨ ${evo.ns.emoji}「${evo.ns.name}」まで あと ${evo.wins}かい かてば しんか！` : "";
+  document.getElementById("homeEvo").textContent = evo ? (evo.ns.secret
+    ? `✨ ひみつの しんかが あるらしい…（あと ${evo.wins}かい かつと なにかが おこる！）`
+    : `✨ ${evo.ns.emoji}「${evo.ns.name}」まで あと ${evo.wins}かい かてば しんか！`) : "";
   renderMissions();
   kanjifyDom(document.getElementById("scHome"));
 }
@@ -1988,7 +2008,7 @@ function judge(ok, ans){
     /* 攻撃力はレベルで伸びる（敵のHPも伸びるので バトルの長さは ほぼ一定。数字だけ派手になる） */
     let dmg = 17 + D.lv + streak*4;
     if(crit) dmg*=2;
-    if(D.course==="dragon") dmg=Math.round(dmg*1.1);   /* ドラゴンコース：こうげき +10% */
+    if(D.course==="dragon"||D.course==="star") dmg=Math.round(dmg*1.1);   /* ドラゴン・ほし：こうげき +10% */
     enemy.hp -= dmg;
     let xp=10 + Math.min(streak,5)*2; gainedXp+=xp; addXp(xp);
     allyLunge();
@@ -2609,7 +2629,7 @@ function equippedEmoji(slot){
 }
 /* ジェム獲得の共通口（うみコース：+10%） */
 function addGems(n){
-  if(D.course==="sea") n=Math.round(n*1.1);
+  if(D.course==="sea"||D.course==="star") n=Math.round(n*1.1);
   D.gems+=n;
   return n;
 }
@@ -2619,9 +2639,9 @@ function hasUR(){ return allGachaItems().some(it=>it.r===4 && ownsGachaItem(it))
 function unlockedCourseSlots(){ return 1 + (D.lv>=10?1:0) + (hasUR()?1:0); }
 function renderStarter(){
   const list=document.getElementById("starterList"); list.innerHTML="";
-  Object.keys(COURSES).forEach(key=>{
+  Object.keys(COURSES).filter(k=>!COURSES[k].secret).forEach(key=>{
     const c=COURSES[key];
-    const line=c.stages.map(s=>s.emoji).join("→");
+    const line=c.stages.filter(s=>!s.secret).map(s=>s.emoji).join("→");
     const b=document.createElement("button");
     b.className="rangebtn";
     b.innerHTML=`<div style="text-align:left;"><div class="rname">${c.stages[0].emoji} ${c.name}</div>
@@ -2641,7 +2661,11 @@ function chooseStarter(key){
 function pickCourse(key){
   if(D.course===key) return;
   if(D.courses.includes(key)){ D.course=key; }
-  else if(D.courses.length<unlockedCourseSlots()){ D.courses.push(key); D.course=key; }
+  else if(COURSES[key].secret){   /* ほしコース：わく数ではなく「3たいぜんぶLv.20」で かいほう */
+    if(!allBuddiesMax()) return;
+    D.courses.push(key); D.course=key;
+  }
+  else if(D.courses.filter(k=>!COURSES[k].secret).length<unlockedCourseSlots()){ D.courses.push(key); D.course=key; }
   else return;
   curBuddy();   /* はじめてのコースなら Lv.1 の あいぼうが うまれる */
   saveData(); sfx("correct");
@@ -2653,7 +2677,7 @@ function courseGridHtml(){
   Object.keys(COURSES).forEach(key=>{
     const c=COURSES[key];
     const owned=D.courses.includes(key), current=D.course===key;
-    const pickable = owned || D.courses.length<unlockedCourseSlots();
+    const pickable = owned || (c.secret ? allBuddiesMax() : D.courses.filter(k=>!COURSES[k].secret).length<unlockedCourseSlots());
     /* コースごとの あいぼうレベルで 見た目が決まる（もっていない子は Lv.1 スタート） */
     const blv=(D.buddy && D.buddy[key]) ? D.buddy[key].lv : 1;
     const emoji=(function(){ let s=c.stages[0]; for(const st of c.stages){ if(blv>=st.lv) s=st; } return s; })().emoji;
@@ -2661,13 +2685,15 @@ function courseGridHtml(){
     if(current) sub="そうびちゅう（Lv."+blv+"）";
     else if(owned) sub="Lv."+blv+"・タップで こうたい";
     else if(pickable) sub="タップで なかまに！（Lv.1から）";
+    else if(c.secret) sub="3たい ぜんぶ さいしゅうしんかで かいほう";
     else sub = D.lv<10 ? "ランク10で かいほう" : "☆☆☆☆で かいほう";
     const cls="skincell"+(current?" eq":"")+(pickable?"":" lock");
     const click=pickable ? ` onclick="pickCourse('${key}')"` : "";
+    const nm=(c.secret && !owned && !pickable) ? "？？？" : c.name;
     cells+=`<div class="${cls}"${click}><div class="se">${pickable?emoji:"🔒"}</div>
-      <div class="sn">${c.name}</div><div class="sr" style="color:#627d98;">${sub}</div></div>`;
+      <div class="sn">${nm}</div><div class="sr" style="color:#627d98;">${sub}</div></div>`;
   });
-  return `<div class="skingrid" style="grid-template-columns:repeat(3,1fr);">${cells}</div>`;
+  return `<div class="skingrid" style="grid-template-columns:repeat(2,1fr);">${cells}</div>`;
 }
 
 function skinGridHtml(kind){
@@ -2691,7 +2717,7 @@ function skinGridHtml(kind){
 let pendingLevelups=[];   /* あいぼうの レベルアップ（しんか演出は こちら基準） */
 let rankUps=0;            /* ぼうけんランクの上がった数（勝利画面で ひとこと知らせる用） */
 function addXp(xp){
-  if(D.course==="sky") xp=Math.round(xp*1.1);   /* そらコース：けいけんち +10% */
+  if(D.course==="sky"||D.course==="star") xp=Math.round(xp*1.1);   /* そら・ほし：けいけんち +10% */
   /* ぼうけんランク（本人の成長。敵の強さ・かいほうの基準） */
   D.xp+=xp;
   while(D.xp>=xpNeeded(D.lv)){
@@ -2760,7 +2786,9 @@ function winBattle(){
   msg+="<br>🏆 +"+(curRange.boss?2:1)+"（ぜんぶで "+D.trophies+"）　つぎの "+tInfo.label+" まで あと"+tInfo.need+"かい";
   if(trophyMsg) msg+=trophyMsg;
   const evo=winsToNextEvo();
-  if(evo) msg+="<br>✨ "+evo.ns.emoji+"「"+evo.ns.name+"」まで あと "+evo.wins+"かい！";
+  if(evo) msg+= evo.ns.secret
+    ? "<br>✨ ひみつの しんかまで あと "+evo.wins+"かい…！"
+    : "<br>✨ "+evo.ns.emoji+"「"+evo.ns.name+"」まで あと "+evo.wins+"かい！";
   if(D.missions && D.missions.list.some(m=>m.done && !m.claimed)){
     msg+="<br>📋 ミッション たっせい！ ホームで うけとろう";
   }
@@ -2975,8 +3003,14 @@ function playLevelup(){
   document.getElementById("luEmoji").textContent=st.emoji;
   const msg=document.getElementById("luMsg");
   const head="Lv."+lv+" になった！ ";
-  if(evolve){ msg.innerHTML=head+"<br>🎊 しんか！「"+evolve.name+"」<br>"+evolve.msg; }
-  else{ const ns=nextStage(lv); msg.innerHTML=head+(ns?("<br>つぎは Lv."+ns.lv+"で「"+ns.name+"」に しんか！"):"<br>でんせつの レベル！"); }
+  if(evolve){
+    msg.innerHTML=head+"<br>🎊 しんか！「"+evolve.name+"」<br>"+evolve.msg;
+    /* 3たいめが さいしゅうしんかした しゅんかん：ごほうびコースの おしらせ */
+    if(evolve.lv===20 && allBuddiesMax() && !D.courses.includes("star")){
+      msg.innerHTML+="<br><br>⭐ ひみつの「ほしコース」が かいほうされた！<br>ステータスの コースがえで つれて いける！";
+    }
+  }
+  else{ const ns=nextStage(lv); msg.innerHTML=head+(ns?(ns.secret?"<br>この先に ひみつの しんかが あるらしい…！":("<br>つぎは Lv."+ns.lv+"で「"+ns.name+"」に しんか！")):"<br>でんせつの レベル！"); }
   document.getElementById("levelup").classList.add("show");
   confetti(28);
 }
@@ -3444,7 +3478,9 @@ function openStatus(){
   const totalOk=log.reduce((s,e)=>s+e.ok,0);
   const acc=log.length?Math.round(totalOk/log.length*100):0;
   const evoLine = ns
-    ? `<div style="font-size:13px;color:#829ab1;margin-top:6px;">${ns.emoji} つぎは Lv.${ns.lv} で「${ns.name}」に しんか！</div>`
+    ? (ns.secret
+      ? `<div style="font-size:13px;color:#829ab1;margin-top:6px;">❓ この先に ひみつの しんかが あるらしい…</div>`
+      : `<div style="font-size:13px;color:#829ab1;margin-top:6px;">${ns.emoji} つぎは Lv.${ns.lv} で「${ns.name}」に しんか！</div>`)
     : `<div style="font-size:13px;color:#f59e0b;margin-top:6px;font-weight:800;">🌟 さいこうレベル！きみは マスターだ！</div>`;
   const html=`
     <div class="card" style="text-align:center;">
