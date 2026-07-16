@@ -195,7 +195,12 @@
   @keyframes fbpop{from{transform:scale(0) rotate(-20deg);} to{transform:scale(1) rotate(0);}}
 
   .overlay{position:fixed; inset:0; background:rgba(10,10,40,.78); display:none; align-items:center;
-    justify-content:center; z-index:50; flex-direction:column; text-align:center; padding:24px;}
+    z-index:50; flex-direction:column; text-align:center; padding:24px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  /* 中身が画面より低いときは中央寄せ、超えたときは上下が切れずスクロールできる */
+  .overlay>:first-child{margin-top:auto;}
+  .overlay>:last-child{margin-bottom:auto;}
+  .overlay>*{flex-shrink:0;}
   .overlay.show{display:flex; animation:pop .3s ease;}
   .overlay .o-emoji{font-size:104px; animation:float 2s ease-in-out infinite;}
   .overlay .o-title{color:var(--accent2); font-size:38px; font-weight:900; text-shadow:0 3px 0 rgba(0,0,0,.3); margin-top:4px;}
