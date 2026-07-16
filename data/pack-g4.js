@@ -55,10 +55,11 @@ const MATH_UNITS_G4=[
       return qc("時計の 長い はりが "+m[0]+"分間に 回る 角度は？", m[1]+"°", [m[1]+"°", (m[1]/2)+"°", (m[1]===360?90:m[1]*2)+"°", (m[1]+30)+"°"], "bun"); }},
   {id:"g4u5", name:"小数のしくみ", term:1, s:[6,20], gen(){
     const v=rnd(1,3);
-    if(v===1){ const n=rnd(12,99);
+    if(v===1){ let n=rnd(12,99); while(n%10===0) n=rnd(12,99);   /* 0.20 のような 見た目に ならないように */
       const right=(n/100).toFixed(2);
       return qc("0.01を "+n+"こ あつめた 数は？", right, [right, (n/10).toFixed(1), (n/1000).toFixed(3), ""+n], "dec"); }
     if(v===2){ const A=rnd(101,879); let B=rnd(1,Math.min(999-A,600));
+      while((A+B)%10===0) B=rnd(1,Math.min(999-A,600));
       const n=A+B, right=(n/100).toFixed(2);
       const set=new Set([right]); let guard=0;
       while(set.size<4 && guard++<40){ set.add(((n+rnd(-30,30))/100).toFixed(2)); }

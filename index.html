@@ -1142,7 +1142,7 @@ function normalizeSave(d){
   if(typeof d.trophyOver!=="number") d.trophyOver=0;
   if(!Array.isArray(d.titles)) d.titles=[];
   if(!Array.isArray(d.rarityBonus)) d.rarityBonus=[];
-  if(![1,3,6].includes(d.grade)) d.grade=3;   /* 学年（引き出し）。むかしのデータは 3年生あつかい */
+  if(!GRADE_PACKS[d.grade]) d.grade=3;   /* 学年（引き出し）。引き出しの ない学年・むかしのデータは 3年生あつかい */
   if(!BOOK_PACKS[d.book]) d.book="hadano";   /* 教科書セット。むかしのデータは はだの（啓林・大日本・教出）あつかい */
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
