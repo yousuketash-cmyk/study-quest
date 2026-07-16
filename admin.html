@@ -57,6 +57,9 @@
 <script src="data/pack-g1.js"></script>
 <script src="data/pack-g2.js"></script>
 <script src="data/pack-g3.js"></script>
+<script src="data/pack-g4.js"></script>
+<script src="data/subjects-g4.js"></script>
+<script src="data/pack-g5.js"></script>
 <script src="data/pack-g6.js"></script>
 <script src="data/subjects-extra.js"></script>
 <script src="data/advanced.js"></script>
@@ -71,6 +74,7 @@ const CAT_LABEL={add:"たしざん", sub:"ひきざん", mul:"かけざん", div
   frac:"ぶんすう", dec:"しょうすう", box:"□を使った式", bai:"なんばい", zu:"ずけい",
   bun:"文章もんだい", kazu:"かず・ばんめ", kurabe:"くらべかた", moji:"もじあつめ",
   shiki:"文字と式", baai:"場合の数", hi:"比", hirei:"比例・反比例", data:"データ・平均",
+  wariai:"わりあい", sokudo:"速さ", seisu:"整数の せいしつ",
   seiji:"政治とくらし", rekishi:"歴史", kokusai:"世界の中の日本",
   seimei:"生命（体・植物）", busshitsu:"もの・水よう液", chikyu:"地球（月・大地）", energy:"エネルギー（てこ・電気）",
   eigo:"えいご", chiiki:"まちと市", kurashi:"はたらく人", anzen:"安全を守る", dokkai:"よみとり"};
@@ -112,6 +116,8 @@ function unitListsFor(d){
     1:{math:MATH_UNITS_G1},
     2:{math:MATH_UNITS_G2},
     3:{math:MATH_UNITS_G3, sci:SCI_UNITS_G3, soc:SOC_UNITS_G3, eng:ENG_UNITS_G3},
+    4:{math:MATH_UNITS_G4, sci:SCI_UNITS_G4, soc:SOC_UNITS_G4, eng:ENG_UNITS_G4},
+    5:{math:MATH_UNITS_G5},
     6:{math:MATH_UNITS_G6, sci:SCI_UNITS_G6, soc:SOC_UNITS_G6, eng:ENG_UNITS_G6},
   };
   const p=Object.assign({}, packs[grade]||packs[3]);

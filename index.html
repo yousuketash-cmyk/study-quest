@@ -380,6 +380,7 @@
         <button class="pacebtn" data-g="2" onclick="pickGrade(2)">2ねんせい</button>
         <button class="pacebtn on" data-g="3" onclick="pickGrade(3)">3ねんせい</button>
         <button class="pacebtn" data-g="4" onclick="pickGrade(4)">4ねんせい</button>
+        <button class="pacebtn" data-g="5" onclick="pickGrade(5)">5ねんせい</button>
         <button class="pacebtn" data-g="6" onclick="pickGrade(6)">6ねんせい</button>
       </div>
       <div id="bookRow">
@@ -660,6 +661,7 @@
 <script src="data/pack-g3.js"></script>
 <script src="data/pack-g4.js"></script>
 <script src="data/subjects-g4.js"></script>
+<script src="data/pack-g5.js"></script>
 <script src="data/pack-g6.js"></script>
 <script src="data/subjects-extra.js"></script>
 <script src="data/advanced.js"></script>
@@ -1667,6 +1669,11 @@ const GRADE_PACKS={
      mathUnits:MATH_UNITS_G4, mathAdv:MATH_ADV_G4, kanji:KANJI_G4, kanjiAlt:KANJI_ALT_G4, sents:SENTS_G4,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G4, preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join(""),
      socUnits:SOC_UNITS_G4, sciUnits:SCI_UNITS_G4, engUnits:ENG_UNITS_G4, dokkai:DOKKAI_G4},
+  /* 5年の preKanji は 1〜4年分（4年パックの配当を含む） */
+  5:{label:"5ねんせい",
+     mathUnits:MATH_UNITS_G5, kanji:KANJI_G5, kanjiAlt:KANJI_ALT_G5, sents:SENTS_G5,
+     kanjiMonthOrder:KANJI_MONTH_ORDER_G5,
+     preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join("")+KANJI_G4.map(k=>k.w).join("")},
   /* 6年の preKanji は 1〜3年分まで（4・5年配当の変換辞書語は少ないので実用上OK） */
   6:{label:"6ねんせい",
      mathUnits:MATH_UNITS_G6, mathAdv:MATH_ADV_G6, kanji:KANJI_G6, kanjiAlt:KANJI_ALT_G6, sents:SENTS_G6,
@@ -3172,6 +3179,7 @@ const CAT_LABEL={add:"たしざん", sub:"ひきざん", mul:"かけざん", div
   frac:"ぶんすう", dec:"しょうすう", box:"□を使った式", bai:"なんばい", zu:"ずけい",
   bun:"文章もんだい", kazu:"かず・ばんめ", kurabe:"くらべかた", moji:"もじあつめ",
   shiki:"文字と式", baai:"場合の数", hi:"比", hirei:"比例・反比例", data:"データ・平均",
+  wariai:"わりあい", sokudo:"速さ", seisu:"整数の せいしつ",
   seiji:"政治とくらし", rekishi:"歴史", kokusai:"世界の中の日本",
   seimei:"生命（体・植物）", busshitsu:"もの・水よう液", chikyu:"地球（月・大地）", energy:"エネルギー（てこ・電気）",
   eigo:"えいご", chiiki:"まちと市", kurashi:"はたらく人", anzen:"安全を守る", dokkai:"よみとり"};
