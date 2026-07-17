@@ -3298,6 +3298,96 @@ function progressCard(){
   </div>`;
 }
 function paceSet(v){ D.pace=v; KNOWN_KANJI=null; saveData(); openReport(); }
+/* ===== この子の成長ものがたり（過去の本人とだけ比べる。みんなとの比較なし）
+   長期の記録はクラウドの日別倉庫（sq_my_days・全期間）から。手元の log は直近3,000問で
+   切れるため、クラウド未接続の子は出せる範囲だけ表示する ===== */
+async function fillGrowthCard(){
+  const el=document.getElementById("growthCard");
+  if(!el) return;
+  /* --- 日別の記録を集める（クラウド優先・手元でおぎなう） --- */
+  const byDay={};
+  const addDay=(d,n,ok,cats)=>{ if(!d||!n) return;
+    if(!byDay[d] || n>=byDay[d].n) byDay[d]={n:n, ok:ok, cats:cats||[]}; };
+  const pl=typeof currentPlayer==="function"?currentPlayer():null;
+  if(typeof cloudOn==="function" && cloudOn() && pl && pl.cloudId){
+    try{ (await rpc("sq_my_days",{p_code:FAMILY.code, p_player:pl.cloudId})||[])
+      .forEach(r=>addDay(r.d, r.n, r.ok, r.cats)); }catch(e){}
+  }
+  /* 手元の log からも同じ形を作る（クラウドにまだ無い日・未接続の子のため） */
+  const localDays={};
+  (D.log||[]).forEach(e=>{
+    if(!e.d) return;
+    const dd=(localDays[e.d]=localDays[e.d]||{n:0,ok:0,cat:{}});
+    dd.n++; dd.ok+=e.ok?1:0;
+    const key=(e.sub||"math")+"|"+(e.cat||"?");
+    (dd.cat[key]=dd.cat[key]||{n:0,ok:0}); dd.cat[key].n++; dd.cat[key].ok+=e.ok?1:0;
+  });
+  Object.keys(localDays).forEach(d=>{
+    const v=localDays[d];
+    addDay(d, v.n, v.ok, Object.keys(v.cat).map(k=>({sub:k.split("|")[0], cat:k.split("|")[1], n:v.cat[k].n, ok:v.cat[k].ok})));
+  });
+  const days=Object.keys(byDay).sort();
+  if(days.length<3) return;   /* 3日ぶん たまってから見せる */
+
+  /* --- 週ごとの正解率（直近8週・さいきんが上） --- */
+  const today=new Date(); today.setHours(0,0,0,0);
+  const weeks=[];
+  for(let w=0;w<8;w++){
+    const to=new Date(today); to.setDate(to.getDate()-w*7);
+    const from=new Date(to); from.setDate(from.getDate()-6);
+    const f=ymd(from), t=ymd(to);
+    let n=0, ok=0;
+    days.forEach(d=>{ if(d>=f && d<=t){ n+=byDay[d].n; ok+=byDay[d].ok; } });
+    if(n>0) weeks.push({label:(from.getMonth()+1)+"/"+from.getDate()+"〜", acc:Math.round(ok/n*100), n:n});
+  }
+  /* --- 分野ごとの伸び（この4週 vs その前の4週） --- */
+  const cut1=new Date(today); cut1.setDate(cut1.getDate()-27);
+  const cut2=new Date(today); cut2.setDate(cut2.getDate()-55);
+  const c1=ymd(cut1), c2=ymd(cut2);
+  const now={}, before={};
+  days.forEach(d=>{
+    const box = d>=c1 ? now : (d>=c2 ? before : null);
+    if(!box) return;
+    (byDay[d].cats||[]).forEach(c=>{
+      if(!c.cat||c.cat==="?") return;
+      (box[c.cat]=box[c.cat]||{n:0,ok:0}); box[c.cat].n+=c.n; box[c.cat].ok+=c.ok;
+    });
+  });
+  const moves=[];
+  Object.keys(now).forEach(k=>{
+    const a=before[k], b=now[k];
+    if(!a || a.n<8 || b.n<8) return;
+    const prev=Math.round(a.ok/a.n*100), cur=Math.round(b.ok/b.n*100);
+    moves.push({label:(CAT_LABEL[k]||k), prev:prev, cur:cur, diff:cur-prev});
+  });
+  moves.sort((x,y)=>y.diff-x.diff);
+  const grown=moves.filter(m=>m.diff>=5).slice(0,4);
+  const trying=moves.filter(m=>m.diff<=-5).slice(-2);
+
+  let inner="";
+  if(weeks.length>=2){
+    inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:8px 0 4px;">週ごとの正解率（さいきんが上）</div>`
+      +weeks.map(w=>barRow(w.label, w.acc, w.acc+"%（"+w.n+"問）", accColor(w.acc/100))).join("");
+  }
+  if(grown.length){
+    inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:12px 0 2px;">この1か月で 伸びたところ</div>`
+      +grown.map(m=>`<div class="stat" style="border-bottom:none; padding:6px 4px;"><span>📈 ${m.label}</span>
+        <span class="v" style="font-size:13px;"><span style="opacity:.55;">${m.prev}%→</span>${m.cur}%<span style="color:#16a34a; font-weight:900;">（+${m.diff}）</span></span></div>`).join("");
+  }
+  if(trying.length){
+    inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:12px 0 2px;">いま むずかしいところに挑戦中</div>`
+      +trying.map(m=>`<div class="stat" style="border-bottom:none; padding:6px 4px;"><span>🧗 ${m.label}</span>
+        <span class="v" style="font-size:13px;"><span style="opacity:.55;">${m.prev}%→</span>${m.cur}%</span></div>`).join("");
+  }
+  if(!inner) return;
+  const totalN=days.reduce((a,d)=>a+byDay[d].n,0);
+  el.innerHTML=`<div class="card"><div class="rep-h">この子の成長ものがたり</div>
+    <div class="stat"><span>これまでの あゆみ</span><span class="v" style="font-size:14px;">${days.length}日・${totalN}問</span></div>
+    ${inner}
+    <div class="rep-note" style="margin-top:8px;">くらべる相手は<b>過去のこの子だけ</b>です。「挑戦中」は新しい単元に入って一時的に下がるのがふつう（下がる＝悪いではありません）。伸びを見つけたら、その場でひとこと ほめてあげてください。</div>
+  </div>`;
+}
+
 /* ===== 学年のみんなとの比べっこ（sq_grade_avg＝学年の平均・分野別集計と、この子の記録を突き合わせる）
    親が知りたいのは「文章問題が弱め」「社会が好きそう」のような見立て。
    順位づけはしない・のばしどころは前向きな言葉で（「診断と言わない」方針と同じ） ===== */
@@ -3513,9 +3603,11 @@ function openReport(sample){
   }else{
     head+=`<div style="text-align:right;margin-top:10px;"><button class="backbtn" onclick="openReport(true)">📊 サンプルの見え方を見る</button></div>`;
     head+=progressCard();
+    head+=`<div id="growthCard"></div>`;    /* 成長ものがたり（過去の本人との比較） */
     head+=`<div id="compareCard"></div>`;   /* 学年平均との比べっこ（クラウドから届き次第うめる） */
     head+=checksCard();
     head+=settingsCard();
+    setTimeout(fillGrowthCard, 30);
     setTimeout(fillCompareCard, 30);
   }
   if(log.length<5){
