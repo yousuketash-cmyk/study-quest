@@ -32,7 +32,8 @@
   <div class="sub">全家族をまたいだ平均だけを表示します（一人ひとりの記録は出ません）</div>
 
   <div class="card" id="loginCard">
-    <input class="in" id="akey" type="password" placeholder="かんりにんキー" autocomplete="off">
+    <!-- type="password" は iPhone で日本語入力が使えなくなるため、text＋見た目マスクにする（2026-07-17） -->
+    <input class="in" id="akey" type="text" placeholder="かんりにんキー" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="-webkit-text-security:disc;">
     <div class="hint" id="hint"></div>
     <button class="btn" onclick="load()">ひらく</button>
   </div>
