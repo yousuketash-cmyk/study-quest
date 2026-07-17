@@ -1,7 +1,7 @@
 /* スタディクエスト データ倉庫：キャラ画像の対応表
    絵文字キャラ→イラスト（assets/chara/*.png）の置き換え。
-   画像が「ある」キャラは絵で、「ない」キャラ（図鑑のなかま・ガチャ等）は絵文字のまま出る設計。
-   図鑑・ガチャの画像は第4弾の納品後にここへ追記する。 */
+   画像が「ある」キャラは絵で、「ない」キャラは絵文字のまま出る設計。
+   第4弾（2026-07-17）で図鑑28・ガチャ36・シーズン36の計100枚がそろい、全キャラ画像化。 */
 
 const CHARA_DIR = "assets/chara/";
 
@@ -34,6 +34,14 @@ function enemyImg(name){
 function buddyImg(courseId, stageIndex){
   const p = BUDDY_IMG_PREFIX[courseId];
   return (p && stageIndex >= 0) ? CHARA_DIR + p + "_" + (stageIndex + 1) + ".png" : null;
+}
+/* 図鑑のなかま（第4弾）：SUBJECTS[].monsters の id がそのままファイル名（mon_m1.png 等） */
+function monImg(monId){
+  return monId ? CHARA_DIR + "mon_" + monId + ".png" : null;
+}
+/* ガチャ・シーズン品（第4弾）：アイテム id がそのままファイル名（h_cap.png / m_ham.png / h_spr_tulip.png 等） */
+function gachaImg(itemId){
+  return itemId ? CHARA_DIR + itemId + ".png" : null;
 }
 /* 画像があれば <img>・なければ絵文字。読み込み失敗時も絵文字に戻る（お守り） */
 function charaHTML(img, emoji){
