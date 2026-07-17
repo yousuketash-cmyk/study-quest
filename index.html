@@ -386,8 +386,7 @@
       <div id="bookRow">
         <div style="font-weight:800; margin:12px 0 6px;">きょうかしょ（わからなければ そのまま。あとから おうちの人が かえられます）</div>
         <div id="bookPick" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-          <button class="pacebtn on" data-b="std" onclick="pickBookPreset('std')">ふつう</button>
-          <button class="pacebtn" data-b="kawaguchi" onclick="pickBookPreset('kawaguchi')">かわぐち</button>
+          <button class="pacebtn on" data-b="std" onclick="pickBookPreset('std')">そのまま</button>
           <button class="pacebtn" data-b="custom" onclick="pickBookPreset('custom')">じぶんで えらぶ</button>
         </div>
         <div id="bookCustom" style="display:none; margin-top:8px;"></div>
@@ -956,7 +955,6 @@ function pickGrade(g){
 function pickBookPreset(b){
   document.querySelectorAll("#bookPick .pacebtn").forEach(x=>x.classList.toggle("on", x.dataset.b===b));
   if(b==="std") NEW_BOOKS={};
-  else if(b==="kawaguchi") NEW_BOOKS={math:"tosho", sci:"tosho", soc:"tosho"};
   document.getElementById("bookCustom").style.display=(b==="custom")?"":"none";
   if(b==="custom") renderBookCustom();
 }
@@ -967,7 +965,7 @@ function renderBookCustom(){
   const subs=(NEW_GRADE>=3)?["math","sci","soc"]:["math"];
   box.innerHTML=subs.map(sub=>{
     const cur=NEW_BOOKS[sub]||BOOK_STD[sub];
-    const opts=BOOK_PUBS[sub].map(p=>`<option value="${p[0]}"${p[0]===cur?" selected":""}>${p[1]}${p[0]===BOOK_STD[sub]?"（ふつう）":""}</option>`).join("");
+    const opts=BOOK_PUBS[sub].map(p=>`<option value="${p[0]}"${p[0]===cur?" selected":""}>${p[1]}${p[0]===BOOK_STD[sub]?"（標準）":""}</option>`).join("");
     return `<div style="display:flex; align-items:center; gap:8px; margin:4px 0; justify-content:center;">
       <span style="font-weight:800; min-width:64px; text-align:right;">${BOOK_SUB_LABEL[sub]}</span>
       <select onchange="NEW_BOOKS['${sub}']=this.value" style="font-size:14px; padding:6px 8px; border-radius:10px;">${opts}</select></div>`;
