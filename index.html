@@ -3298,6 +3298,177 @@ function progressCard(){
   </div>`;
 }
 function paceSet(v){ D.pace=v; KNOWN_KANJI=null; saveData(); openReport(); }
+/* ===== この子の成長ものがたり（過去の本人とだけ比べる。みんなとの比較なし）
+   長期の記録はクラウドの日別倉庫（sq_my_days・全期間）から。手元の log は直近3,000問で
+   切れるため、クラウド未接続の子は出せる範囲だけ表示する ===== */
+async function fillGrowthCard(){
+  const el=document.getElementById("growthCard");
+  if(!el) return;
+  /* --- 日別の記録を集める（クラウド優先・手元でおぎなう） --- */
+  const byDay={};
+  const addDay=(d,n,ok,cats)=>{ if(!d||!n) return;
+    if(!byDay[d] || n>=byDay[d].n) byDay[d]={n:n, ok:ok, cats:cats||[]}; };
+  const pl=typeof currentPlayer==="function"?currentPlayer():null;
+  if(typeof cloudOn==="function" && cloudOn() && pl && pl.cloudId){
+    try{ (await rpc("sq_my_days",{p_code:FAMILY.code, p_player:pl.cloudId})||[])
+      .forEach(r=>addDay(r.d, r.n, r.ok, r.cats)); }catch(e){}
+  }
+  /* 手元の log からも同じ形を作る（クラウドにまだ無い日・未接続の子のため） */
+  const localDays={};
+  (D.log||[]).forEach(e=>{
+    if(!e.d) return;
+    const dd=(localDays[e.d]=localDays[e.d]||{n:0,ok:0,cat:{}});
+    dd.n++; dd.ok+=e.ok?1:0;
+    const key=(e.sub||"math")+"|"+(e.cat||"?");
+    (dd.cat[key]=dd.cat[key]||{n:0,ok:0}); dd.cat[key].n++; dd.cat[key].ok+=e.ok?1:0;
+  });
+  Object.keys(localDays).forEach(d=>{
+    const v=localDays[d];
+    addDay(d, v.n, v.ok, Object.keys(v.cat).map(k=>({sub:k.split("|")[0], cat:k.split("|")[1], n:v.cat[k].n, ok:v.cat[k].ok})));
+  });
+  const days=Object.keys(byDay).sort();
+  if(days.length<3) return;   /* 3日ぶん たまってから見せる */
+
+  /* --- 週ごとの正解率（直近8週・さいきんが上） --- */
+  const today=new Date(); today.setHours(0,0,0,0);
+  const weeks=[];
+  for(let w=0;w<8;w++){
+    const to=new Date(today); to.setDate(to.getDate()-w*7);
+    const from=new Date(to); from.setDate(from.getDate()-6);
+    const f=ymd(from), t=ymd(to);
+    let n=0, ok=0;
+    days.forEach(d=>{ if(d>=f && d<=t){ n+=byDay[d].n; ok+=byDay[d].ok; } });
+    if(n>0) weeks.push({label:(from.getMonth()+1)+"/"+from.getDate()+"〜", acc:Math.round(ok/n*100), n:n});
+  }
+  /* --- 分野ごとの伸び（この4週 vs その前の4週） --- */
+  const cut1=new Date(today); cut1.setDate(cut1.getDate()-27);
+  const cut2=new Date(today); cut2.setDate(cut2.getDate()-55);
+  const c1=ymd(cut1), c2=ymd(cut2);
+  const now={}, before={};
+  days.forEach(d=>{
+    const box = d>=c1 ? now : (d>=c2 ? before : null);
+    if(!box) return;
+    (byDay[d].cats||[]).forEach(c=>{
+      if(!c.cat||c.cat==="?") return;
+      (box[c.cat]=box[c.cat]||{n:0,ok:0}); box[c.cat].n+=c.n; box[c.cat].ok+=c.ok;
+    });
+  });
+  const moves=[];
+  Object.keys(now).forEach(k=>{
+    const a=before[k], b=now[k];
+    if(!a || a.n<8 || b.n<8) return;
+    const prev=Math.round(a.ok/a.n*100), cur=Math.round(b.ok/b.n*100);
+    moves.push({label:(CAT_LABEL[k]||k), prev:prev, cur:cur, diff:cur-prev});
+  });
+  moves.sort((x,y)=>y.diff-x.diff);
+  const grown=moves.filter(m=>m.diff>=5).slice(0,4);
+  const trying=moves.filter(m=>m.diff<=-5).slice(-2);
+
+  let inner="";
+  if(weeks.length>=2){
+    inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:8px 0 4px;">週ごとの正解率（さいきんが上）</div>`
+      +weeks.map(w=>barRow(w.label, w.acc, w.acc+"%（"+w.n+"問）", accColor(w.acc/100))).join("");
+  }
+  if(grown.length){
+    inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:12px 0 2px;">この1か月で 伸びたところ</div>`
+      +grown.map(m=>`<div class="stat" style="border-bottom:none; padding:6px 4px;"><span>📈 ${m.label}</span>
+        <span class="v" style="font-size:13px;"><span style="opacity:.55;">${m.prev}%→</span>${m.cur}%<span style="color:#16a34a; font-weight:900;">（+${m.diff}）</span></span></div>`).join("");
+  }
+  if(trying.length){
+    inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:12px 0 2px;">いま むずかしいところに挑戦中</div>`
+      +trying.map(m=>`<div class="stat" style="border-bottom:none; padding:6px 4px;"><span>🧗 ${m.label}</span>
+        <span class="v" style="font-size:13px;"><span style="opacity:.55;">${m.prev}%→</span>${m.cur}%</span></div>`).join("");
+  }
+  if(!inner) return;
+  const totalN=days.reduce((a,d)=>a+byDay[d].n,0);
+  el.innerHTML=`<div class="card"><div class="rep-h">この子の成長ものがたり</div>
+    <div class="stat"><span>これまでの あゆみ</span><span class="v" style="font-size:14px;">${days.length}日・${totalN}問</span></div>
+    ${inner}
+    <div class="rep-note" style="margin-top:8px;">くらべる相手は<b>過去のこの子だけ</b>です。「挑戦中」は新しい単元に入って一時的に下がるのがふつう（下がる＝悪いではありません）。伸びを見つけたら、その場でひとこと ほめてあげてください。</div>
+  </div>`;
+}
+
+/* ===== 学年のみんなとの比べっこ（sq_grade_avg＝学年の平均・分野別集計と、この子の記録を突き合わせる）
+   親が知りたいのは「文章問題が弱め」「社会が好きそう」のような見立て。
+   順位づけはしない・のばしどころは前向きな言葉で（「診断と言わない」方針と同じ） ===== */
+const SUB_LABEL_CMP={math:"さんすう", kanji:"こくご", science:"りか", social:"しゃかい", english:"えいご"};
+async function fillCompareCard(){
+  const el=document.getElementById("compareCard");
+  if(!el) return;
+  let rows=null;
+  try{ rows=await rpc("sq_grade_avg",{}); }catch(e){ return; }   /* 電波がなければ 何も出さない */
+  const g=(rows||[]).find(r=>+r.grade===+D.grade);
+  if(!g || !g.players || g.players<2) return;   /* 比べる相手が いなければ出さない */
+
+  /* --- この子の分野別・教科別（さいきんの記録＝D.log 全体から） --- */
+  const myCat={}, mySub={}; let myN=0, myOk=0;
+  (D.log||[]).forEach(e=>{
+    if(!e.cat) return;
+    (myCat[e.cat]=myCat[e.cat]||{n:0,ok:0}); myCat[e.cat].n++; myCat[e.cat].ok+=e.ok?1:0;
+    const sb=e.sub||"math"; (mySub[sb]=mySub[sb]||0); mySub[sb]++;
+    myN++; myOk+=e.ok?1:0;
+  });
+  if(myN<30) return;   /* 記録が少ないうちは比べない */
+
+  /* --- 学年の分野別・教科別（クラウド集計） --- */
+  const avgCat={}, avgSub={}; let avgN=0;
+  (g.cats||[]).forEach(c=>{
+    if(!c.cat) return;
+    (avgCat[c.cat]=avgCat[c.cat]||{n:0,ok:0}); avgCat[c.cat].n+=c.n; avgCat[c.cat].ok+=c.ok;
+    (avgSub[c.sub]=avgSub[c.sub]||0); avgSub[c.sub]+=c.n;
+    avgN+=c.n;
+  });
+
+  /* --- 教科ごと×分野ごとの比べ（この学年で実際に出ている分野だけ） --- */
+  const catSub={};   /* 分野→教科（この子のログから） */
+  (D.log||[]).forEach(e=>{ if(e.cat && !catSub[e.cat]) catSub[e.cat]=e.sub||"math"; });
+  const bySub={};
+  Object.keys(myCat).forEach(k=>{
+    const m=myCat[k], a=avgCat[k];
+    if(!a || m.n<8 || a.n<30) return;   /* 少なすぎる分野は比べない */
+    const mine=m.ok/m.n*100, avg=a.ok/a.n*100;
+    const sb=catSub[k]||"math";
+    (bySub[sb]=bySub[sb]||[]).push({label:(CAT_LABEL[k]||k), mine:Math.round(mine), avg:Math.round(avg), diff:mine-avg, n:m.n});
+  });
+
+  /* 棒＝この子の正解率・たての線＝みんなの平均。💪=平均より7pt以上とくい／🌱=7pt以上のびしろ */
+  const cmpBar=(d)=>{
+    const mark=d.diff>=7?"💪":(d.diff<=-7?"🌱":"");
+    return `<div class="brow"><span class="blabel">${mark}${d.label}</span>
+      <div class="btrack" style="position:relative;">
+        <div class="bfill" style="width:${Math.max(3,d.mine)}%;background:${accColor(d.mine/100)};"></div>
+        <div style="position:absolute; top:-2px; bottom:-2px; left:${Math.min(99,Math.max(1,d.avg))}%; width:2px; background:#334155; opacity:.65; border-radius:1px;"></div>
+      </div><span class="bval">${d.mine}%<span style="opacity:.55;">/${d.avg}</span></span></div>`;
+  };
+
+  /* --- 好きそうな教科（取り組みの割合が みんなより高い） --- */
+  const likes={};
+  Object.keys(mySub).forEach(sb=>{
+    if(!avgSub[sb] || !avgN || myN<50) return;
+    const myShare=mySub[sb]/myN, avgShare=avgSub[sb]/avgN;
+    if(mySub[sb]>=15 && avgShare>0 && myShare>=avgShare*1.5 && myShare>=0.15)
+      likes[sb]={my:Math.round(myShare*100), avg:Math.round(avgShare*100)};
+  });
+
+  const SUB_ORDER=["math","kanji","science","social","english"];
+  let inner="";
+  SUB_ORDER.forEach(sb=>{
+    const rows=bySub[sb]; if(!rows||!rows.length) return;
+    rows.sort((x,y)=>y.diff-x.diff);   /* とくいが上・のびしろが下（凸凹が形で見える） */
+    const like=likes[sb]?`<span style="font-weight:700; font-size:12px; color:#e11d48;">❤️ 好きみたい（遊びの${likes[sb].my}%・みんなは${likes[sb].avg}%）</span>`:"";
+    inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:12px 0 4px;">${SUB_LABEL_CMP[sb]||sb}　${like}</div>`
+      +rows.map(cmpBar).join("");
+  });
+  if(!inner) inner=`<div class="rep-note">比べられる分野がまだ少ないです。もう少し遊ぶと教科ごとのグラフが出ます。</div>`;
+
+  const myAcc=Math.round(myOk/myN*100);
+  el.innerHTML=`<div class="card"><div class="rep-h">同じ学年のみんなとの比べっこ（見立て）</div>
+    <div class="stat"><span>ぜんたいの正解率</span><span class="v" style="font-size:14px;">${myAcc}%<span style="opacity:.55; font-weight:700;">（みんなは ${Math.round(g.acc)}%）</span></span></div>
+    ${inner}
+    <div class="rep-note" style="margin-top:8px;">棒＝この子の正解率／たての線＝同じ学年のみんな（${g.players}人）の平均。💪＝みんなより とくい・🌱＝これから のびそう（一緒に1問やると効果大）。
+    順位ではなく<b>この子の凸凹を知るための目安</b>です。人数が少ないうちは平均が大きくゆれます。</div>
+  </div>`;
+}
 /* 教科書の変更（親画面）。単元の器が入れ替わるので引き出しを組み直す */
 function bookSet(sub, pub){
   D.books=booksOf(D); D.books[sub]=pub; D.books=booksOf(D);
@@ -3432,8 +3603,12 @@ function openReport(sample){
   }else{
     head+=`<div style="text-align:right;margin-top:10px;"><button class="backbtn" onclick="openReport(true)">📊 サンプルの見え方を見る</button></div>`;
     head+=progressCard();
+    head+=`<div id="growthCard"></div>`;    /* 成長ものがたり（過去の本人との比較） */
+    head+=`<div id="compareCard"></div>`;   /* 学年平均との比べっこ（クラウドから届き次第うめる） */
     head+=checksCard();
     head+=settingsCard();
+    setTimeout(fillGrowthCard, 30);
+    setTimeout(fillCompareCard, 30);
   }
   if(log.length<5){
     body.innerHTML=head+infoCard("🌱","まだ きろくが 少ないです。<br>もう少し あそぶと、とくいな分野や<br>調子のいい時間が 見えてきます。<br><br>「サンプルの見え方を見る」ボタンで<br>たまったら どう見えるかを 確認できます。");
