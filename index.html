@@ -384,11 +384,13 @@
         <button class="pacebtn" data-g="6" onclick="pickGrade(6)">6ねんせい</button>
       </div>
       <div id="bookRow">
-        <div style="font-weight:800; margin:12px 0 6px;">きょうかしょの まち（わからなければ そのまま）</div>
+        <div style="font-weight:800; margin:12px 0 6px;">きょうかしょ（わからなければ そのまま。あとから おうちの人が かえられます）</div>
         <div id="bookPick" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-          <button class="pacebtn on" data-b="hadano" onclick="pickBook('hadano')">はだの</button>
-          <button class="pacebtn" data-b="kawaguchi" onclick="pickBook('kawaguchi')">かわぐち</button>
+          <button class="pacebtn on" data-b="std" onclick="pickBookPreset('std')">ふつう</button>
+          <button class="pacebtn" data-b="kawaguchi" onclick="pickBookPreset('kawaguchi')">かわぐち</button>
+          <button class="pacebtn" data-b="custom" onclick="pickBookPreset('custom')">じぶんで えらぶ</button>
         </div>
+        <div id="bookCustom" style="display:none; margin-top:8px;"></div>
       </div>
       <button class="btn adventure" onclick="createPlayer()"><span class="menu-emoji">🎒</span>これで はじめる！</button>
     </div>
@@ -669,6 +671,18 @@
 <script src="data/advanced.js"></script>
 <script src="data/dokkai.js"></script>
 <script src="data/book-kawaguchi.js"></script>
+<script src="data/book-cal-math-tosho.js"></script>
+<script src="data/book-cal-math-gakuto.js"></script>
+<script src="data/book-cal-math-kyoshup.js"></script>
+<script src="data/book-cal-math-dainippon.js"></script>
+<script src="data/book-cal-math-nichibun.js"></script>
+<script src="data/book-cal-sci-tosho.js"></script>
+<script src="data/book-cal-sci-gakuto.js"></script>
+<script src="data/book-cal-sci-kyoshup.js"></script>
+<script src="data/book-cal-sci-keirin.js"></script>
+<script src="data/book-cal-sci-shinkyo.js"></script>
+<script src="data/book-cal-soc-tosho.js"></script>
+<script src="data/book-cal-soc-nichibun.js"></script>
 <script src="data/chara-img.js"></script>
 <script>
 /* ============ 相棒モンスター：3コース制（さいしょに えらぶ） ============ */
@@ -930,24 +944,38 @@ function renderPlayers(){
   }
 }
 let NEW_GRADE=3;   /* 新しい子の学年（引き出しが できている学年だけ えらべる） */
-let NEW_BOOK="hadano";   /* 教科書セット（今は3年生だけ かわぐち版がある） */
+let NEW_BOOKS={};  /* 教科書えらび（教科ごとの出版社。空＝標準） */
+const BOOK_SUB_LABEL={math:"さんすう", sci:"りか", soc:"しゃかい"};
 function pickGrade(g){
   if(!GRADE_PACKS[g]) return;
   NEW_GRADE=g;
   document.querySelectorAll("#gradePick .pacebtn").forEach(b=>b.classList.toggle("on", +b.dataset.g===g));
-  /* 教科書セットの用意がある学年だけ えらぶ欄を見せる（ない学年は はだの固定） */
-  const hasBook=Object.keys(BOOK_PACKS).some(b=>BOOK_PACKS[b][g]);
-  document.getElementById("bookRow").style.display=hasBook?"":"none";
-  if(!hasBook) pickBook("hadano");
+  renderBookCustom();   /* 学年で選べる教科が変わる（1・2年は算数のみ） */
 }
-function pickBook(b){
-  NEW_BOOK=b;
+function pickBookPreset(b){
   document.querySelectorAll("#bookPick .pacebtn").forEach(x=>x.classList.toggle("on", x.dataset.b===b));
+  if(b==="std") NEW_BOOKS={};
+  else if(b==="kawaguchi") NEW_BOOKS={math:"tosho", sci:"tosho", soc:"tosho"};
+  document.getElementById("bookCustom").style.display=(b==="custom")?"":"none";
+  if(b==="custom") renderBookCustom();
+}
+/* 教科ごとの出版社プルダウン（じぶんでえらぶ用。学年に教科がある分だけ表示） */
+function renderBookCustom(){
+  const box=document.getElementById("bookCustom");
+  if(!box || box.style.display==="none") return;
+  const subs=(NEW_GRADE>=3)?["math","sci","soc"]:["math"];
+  box.innerHTML=subs.map(sub=>{
+    const cur=NEW_BOOKS[sub]||BOOK_STD[sub];
+    const opts=BOOK_PUBS[sub].map(p=>`<option value="${p[0]}"${p[0]===cur?" selected":""}>${p[1]}${p[0]===BOOK_STD[sub]?"（ふつう）":""}</option>`).join("");
+    return `<div style="display:flex; align-items:center; gap:8px; margin:4px 0; justify-content:center;">
+      <span style="font-weight:800; min-width:64px; text-align:right;">${BOOK_SUB_LABEL[sub]}</span>
+      <select onchange="NEW_BOOKS['${sub}']=this.value" style="font-size:14px; padding:6px 8px; border-radius:10px;">${opts}</select></div>`;
+  }).join("");
 }
 function openNewPlayer(){
   document.getElementById("playerNameInput").value="";
   document.getElementById("playerNameHint").textContent="";
-  pickGrade(3); pickBook("hadano");
+  pickGrade(3); pickBookPreset("std");
   show("scNewPlayer");
   setTimeout(()=>document.getElementById("playerNameInput").focus(),80);
 }
@@ -958,8 +986,8 @@ function createPlayer(){
   const pl={id:id, name:name};
   PLAYERS.list.push(pl);
   savePlayers();
-  /* えらんだ学年と教科書セットを さいしょの記録として書いておく（のこりは normalizeSave が うめる） */
-  localStorage.setItem(keyFor(id), JSON.stringify({grade:NEW_GRADE, book:NEW_BOOK}));
+  /* えらんだ学年と教科書を さいしょの記録として書いておく（のこりは normalizeSave が うめる） */
+  localStorage.setItem(keyFor(id), JSON.stringify({grade:NEW_GRADE, books:NEW_BOOKS}));
   if(cloudOn()){
     rpc("sq_add_player",{p_code:FAMILY.code, p_name:name})
       .then(cid=>{ if(cid){ pl.cloudId=cid; savePlayers(); } }).catch(()=>{});
@@ -1149,7 +1177,12 @@ function normalizeSave(d){
   if(!Array.isArray(d.titles)) d.titles=[];
   if(!Array.isArray(d.rarityBonus)) d.rarityBonus=[];
   if(!GRADE_PACKS[d.grade]) d.grade=3;   /* 学年（引き出し）。引き出しの ない学年・むかしのデータは 3年生あつかい */
-  if(!BOOK_PACKS[d.book]) d.book="hadano";   /* 教科書セット。むかしのデータは はだの（啓林・大日本・教出）あつかい */
+  /* 教科書えらび（教科ごとに出版社）。旧「市セット」（d.book）からの引っ越し：
+     kawaguchi → 算数・理科・社会＝東京書籍／hadano・不明 → 標準（啓林・大日本・教出） */
+  if(!d.books || typeof d.books!=="object" || Array.isArray(d.books)){
+    d.books = (d.book==="kawaguchi") ? {math:"tosho", sci:"tosho", soc:"tosho"} : {};
+  }
+  d.books=booksOf(d);   /* 不正な出版社キーは標準に丸める */
   if(!Array.isArray(d.courses)) d.courses = d.course ? [d.course] : [];
   if(d.course && !d.courses.includes(d.course)) d.courses.push(d.course);
   if(!["fast","std","slow"].includes(d.pace)) d.pace="std";
@@ -1687,6 +1720,39 @@ const GRADE_PACKS={
 let MATH_UNITS=MATH_UNITS_G3, MATH_ADV=MATH_ADV_G3, KANJI=KANJI_G3, KANJI_ALT=KANJI_ALT_G3, SENTS=SENTS_G3,
     KANJI_MONTH_ORDER=KANJI_MONTH_ORDER_G3, PRE_KANJI=G1_KANJI+G2_KANJI, MOJI=null,
     SOC_UNITS=null, SCI_UNITS=null, ENG_UNITS=null, DOKKAI=null;
+/* ===== 教科書えらび（教科ごとに出版社を選ぶ。spec/教科書えらび-設計メモ.md が単一の真実） ===== */
+const BOOK_PUBS={
+  math:[["keirin","啓林館"],["tosho","東京書籍"],["gakuto","学校図書"],["kyoshup","教育出版"],["dainippon","大日本図書"],["nichibun","日本文教出版"]],
+  sci: [["dainippon","大日本図書"],["tosho","東京書籍"],["gakuto","学校図書"],["kyoshup","教育出版"],["keirin","啓林館"],["shinkyo","信州教育出版社"]],
+  soc: [["kyoshup","教育出版"],["tosho","東京書籍"],["nichibun","日本文教出版"]],
+};
+const BOOK_STD={math:"keirin", sci:"dainippon", soc:"kyoshup"};   /* 標準＝従来の秦野 */
+function booksOf(d){
+  const b=(d&&d.books)||{};
+  const ok=(sub,v)=>BOOK_PUBS[sub].some(p=>p[0]===v)?v:BOOK_STD[sub];
+  return {math:ok("math",b.math), sci:ok("sci",b.sci), soc:ok("soc",b.soc)};
+}
+function resolveBookUnits(subject, pub, grade, baseUnits){
+  if(!baseUnits || !pub || pub===BOOK_STD[subject]) return baseUnits;
+  /* 東書3年は川口実装（kwu の拡張gen等）をそのまま使う */
+  if(pub==="tosho" && grade===3){
+    const kawa=(BOOK_PACKS.kawaguchi||{})[3]||{};
+    const m={math:kawa.mathUnits, sci:kawa.sciUnits, soc:kawa.socUnits}[subject];
+    if(m) return m;
+  }
+  const cal=(typeof BOOK_CAL!=="undefined" && BOOK_CAL[subject] && BOOK_CAL[subject][pub]) ? BOOK_CAL[subject][pub][grade] : null;
+  if(!cal) return baseUnits;   /* 倉庫にない学年は標準のまま（安全なフォールバック） */
+  const src={}; baseUnits.forEach(u=>src[u.id]=u);
+  const out=[];
+  cal.forEach((e,i)=>{
+    const b=e.base?src[e.base]:null;
+    if(!b && subject!=="math") return;   /* りか・しゃかいの対応なし単元は出題から外す（v1の割り切り） */
+    const u=Object.assign({}, b||{}, {id:"bk_"+pub+"_g"+grade+"_"+(i+1), name:e.name, term:e.term, s:e.s});
+    if(subject==="math"){ u.adv=b?(b.adv||e.base):undefined; if(!b) u.gen=null; }
+    out.push(u);
+  });
+  return out;
+}
 function applyGradePack(){
   const p=GRADE_PACKS[D&&D.grade]||GRADE_PACKS[3];
   MATH_ADV=p.mathAdv||{};
@@ -1695,13 +1761,11 @@ function applyGradePack(){
   /* しゃかい・りか・えいごの引き出し（データのある学年だけ 教科が解放される） */
   SOC_UNITS=p.socUnits||null; SCI_UNITS=p.sciUnits||null; ENG_UNITS=p.engUnits||null;
   DOKKAI=(p.dokkai&&p.dokkai.length)?p.dokkai:null;   /* よみとり（短文読解） */
-  /* 教科書セット（川口など）：学年の引き出しの上から 単元カレンダーだけ重ねる（data/book-*.js） */
-  const bp=(BOOK_PACKS[D&&D.book]||{})[D&&D.grade];
-  if(bp){
-    if(bp.mathUnits) MATH_UNITS=bp.mathUnits;
-    if(bp.sciUnits) SCI_UNITS=bp.sciUnits;
-    if(bp.socUnits) SOC_UNITS=bp.socUnits;
-  }
+  /* 教科書えらび：選んだ出版社の単元カレンダーを学年の引き出しの上から重ねる */
+  const g=D&&D.grade, bs=booksOf(D);
+  MATH_UNITS=resolveBookUnits("math", bs.math, g, MATH_UNITS);
+  SCI_UNITS=resolveBookUnits("sci", bs.sci, g, SCI_UNITS);
+  SOC_UNITS=resolveBookUnits("soc", bs.soc, g, SOC_UNITS);
   KNOWN_KANJI=null;   /* 学年が変わると 学習ずみ漢字も 変わる */
 }
 /* 教科が今の学年で あそべるか（じゅんびちゅう判定） */
@@ -3206,22 +3270,38 @@ function progressCard(){
   const kmonths=taughtKanjiMonths();
   const kn=KANJI.filter(k=>kmonths.includes(k.m)).length;
   const paceBtn=(v,label)=>`<button class="pacebtn${(D.pace===v)?" on":""}" onclick="paceSet('${v}')">${label}</button>`;
-  /* 見出しは選んだ教科書セットに合わせる（かわぐち＝東京書籍の家庭に「啓林館」と出さない） */
-  const bookLabel=(D.book==="kawaguchi")?"かわぐちセット：算数・理科・社会＝東京書籍・国語＝光村図書"
-    :"はだのセット：算数＝啓林館・国語＝光村図書";
+  /* 見出しと選択欄：教科ごとに選んだ出版社を表示・ここで変更もできる */
+  const bs=booksOf(D);
+  const pubName=(sub)=>(BOOK_PUBS[sub].find(p=>p[0]===bs[sub])||[])[1]||"";
+  const bookLabel="算数＝"+pubName("math")+((D.grade>=3)?"・理科＝"+pubName("sci")+"・社会＝"+pubName("soc"):"")+"・国語＝光村基準（全社共通）";
+  const bookSubs=(D.grade>=3)?["math","sci","soc"]:["math"];
+  const bookRows=bookSubs.map(sub=>{
+    const opts=BOOK_PUBS[sub].map(p=>`<option value="${p[0]}"${p[0]===bs[sub]?" selected":""}>${p[1]}${p[0]===BOOK_STD[sub]?"（標準）":""}</option>`).join("");
+    return `<div class="stat" style="border-bottom:none; padding:7px 4px;"><span>${({math:"算数",sci:"理科",soc:"社会"})[sub]}の教科書</span>
+      <select onchange="bookSet('${sub}', this.value)" style="font-size:13px; padding:5px 8px; border-radius:10px; max-width:56%;">${opts}</select></div>`;
+  }).join("");
   return `<div class="card"><div class="rep-h">教科書のすすみ（${bookLabel}）</div>
     <div class="stat"><span>いまの単元（算数）</span><span class="v" style="font-size:14px;">${latest}</span></div>
     <div class="stat"><span>ならった単元（算数）</span><span class="v">${taught.length} / ${MATH_UNITS.filter(u=>u.gen).length}</span></div>
     <div class="stat" style="border-bottom:none;"><span>ならった漢字（目安）</span><span class="v">${kn} / ${KANJI.length}字</span></div>
     <div style="margin-top:10px;">
+      <div style="font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">使っている教科書（出版社をえらぶと単元の順番と時期が切り替わります）</div>
+      ${bookRows}
+    </div>
+    <div style="margin-top:10px;">
       <div style="font-size:13px; font-weight:800; color:#334155; margin-bottom:6px;">学校のすすみ具合の補正（うちの学校は…）</div>
       ${paceBtn("fast","はやめ")}${paceBtn("std","ふつう")}${paceBtn("slow","ゆっくり")}
     </div>
     ${uprogRows()}
-    <div class="rep-note" style="margin-top:8px;">今日の日付から標準ペースで自動判定します（長期休みは進みません）。算数の時期は選んだ教科書セットの年間指導計画準拠、漢字の月わりは標準の目安です。出題・チェックは「ならった範囲」だけから出ます。</div>
+    <div class="rep-note" style="margin-top:8px;">今日の日付から標準ペースで自動判定します（長期休みは進みません）。算数の時期は選んだ教科書の年間指導計画準拠、漢字の月わりは標準の目安です。出題・チェックは「ならった範囲」だけから出ます。</div>
   </div>`;
 }
 function paceSet(v){ D.pace=v; KNOWN_KANJI=null; saveData(); openReport(); }
+/* 教科書の変更（親画面）。単元の器が入れ替わるので引き出しを組み直す */
+function bookSet(sub, pub){
+  D.books=booksOf(D); D.books[sub]=pub; D.books=booksOf(D);
+  applyGradePack(); saveData(); openReport();
+}
 /* りか・しゃかい・えいご「ここまで ならった」の手なおし（単元単位・プレイヤーごと） */
 function uprogRows(){
   const subs=[["social","しゃかい"],["science","りか"],["english","えいご"]];
