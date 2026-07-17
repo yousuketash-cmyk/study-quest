@@ -3298,6 +3298,76 @@ function progressCard(){
   </div>`;
 }
 function paceSet(v){ D.pace=v; KNOWN_KANJI=null; saveData(); openReport(); }
+/* ===== 学年のみんなとの比べっこ（sq_grade_avg＝学年の平均・分野別集計と、この子の記録を突き合わせる）
+   親が知りたいのは「文章問題が弱め」「社会が好きそう」のような見立て。
+   順位づけはしない・のばしどころは前向きな言葉で（「診断と言わない」方針と同じ） ===== */
+const SUB_LABEL_CMP={math:"さんすう", kanji:"こくご", science:"りか", social:"しゃかい", english:"えいご"};
+async function fillCompareCard(){
+  const el=document.getElementById("compareCard");
+  if(!el) return;
+  let rows=null;
+  try{ rows=await rpc("sq_grade_avg",{}); }catch(e){ return; }   /* 電波がなければ 何も出さない */
+  const g=(rows||[]).find(r=>+r.grade===+D.grade);
+  if(!g || !g.players || g.players<2) return;   /* 比べる相手が いなければ出さない */
+
+  /* --- この子の分野別・教科別（さいきんの記録＝D.log 全体から） --- */
+  const myCat={}, mySub={}; let myN=0, myOk=0;
+  (D.log||[]).forEach(e=>{
+    if(!e.cat) return;
+    (myCat[e.cat]=myCat[e.cat]||{n:0,ok:0}); myCat[e.cat].n++; myCat[e.cat].ok+=e.ok?1:0;
+    const sb=e.sub||"math"; (mySub[sb]=mySub[sb]||0); mySub[sb]++;
+    myN++; myOk+=e.ok?1:0;
+  });
+  if(myN<30) return;   /* 記録が少ないうちは比べない */
+
+  /* --- 学年の分野別・教科別（クラウド集計） --- */
+  const avgCat={}, avgSub={}; let avgN=0;
+  (g.cats||[]).forEach(c=>{
+    if(!c.cat) return;
+    (avgCat[c.cat]=avgCat[c.cat]||{n:0,ok:0}); avgCat[c.cat].n+=c.n; avgCat[c.cat].ok+=c.ok;
+    (avgSub[c.sub]=avgSub[c.sub]||0); avgSub[c.sub]+=c.n;
+    avgN+=c.n;
+  });
+
+  /* --- 見立て1・2：分野ごとの とくい／のばしどころ（正解率の差） --- */
+  const diffs=[];
+  Object.keys(myCat).forEach(k=>{
+    const m=myCat[k], a=avgCat[k];
+    if(!a || m.n<10 || a.n<30) return;   /* 少なすぎる分野は比べない */
+    const mine=m.ok/m.n*100, avg=a.ok/a.n*100;
+    diffs.push({k:k, label:(CAT_LABEL[k]||k), mine:Math.round(mine), avg:Math.round(avg), diff:mine-avg, n:m.n});
+  });
+  diffs.sort((x,y)=>y.diff-x.diff);
+  const strong=diffs.filter(d=>d.diff>=7).slice(0,3);
+  const grow=diffs.filter(d=>d.diff<=-7).slice(-3).reverse();
+
+  /* --- 見立て3：好きそうな教科（取り組みの割合が みんなより高い） --- */
+  const likes=[];
+  Object.keys(mySub).forEach(sb=>{
+    if(!avgSub[sb] || !avgN || myN<50) return;
+    const myShare=mySub[sb]/myN, avgShare=avgSub[sb]/avgN;
+    if(mySub[sb]>=15 && avgShare>0 && myShare>=avgShare*1.5 && myShare>=0.15)
+      likes.push({label:(SUB_LABEL_CMP[sb]||sb), my:Math.round(myShare*100), avg:Math.round(avgShare*100)});
+  });
+
+  const row=(d,mark)=>`<div class="stat" style="border-bottom:none; padding:6px 4px;"><span>${mark} ${d.label}</span>
+    <span class="v" style="font-size:13px;">この子 ${d.mine}%<span style="opacity:.55;">（みんな ${d.avg}%）</span></span></div>`;
+  let inner="";
+  if(strong.length) inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:8px 0 2px;">みんなより とくい</div>`+strong.map(d=>row(d,"💪")).join("");
+  if(grow.length) inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:8px 0 2px;">これから のびそうな ところ（一緒にやると効果大）</div>`+grow.map(d=>row(d,"🌱")).join("");
+  if(likes.length) inner+=`<div style="font-size:13px;font-weight:800;color:#334155;margin:8px 0 2px;">好きみたい（みんなより たくさん取り組んでいる）</div>`
+    +likes.map(l=>`<div class="stat" style="border-bottom:none; padding:6px 4px;"><span>❤️ ${l.label}</span>
+      <span class="v" style="font-size:13px;">遊びの${l.my}%<span style="opacity:.55;">（みんなは${l.avg}%）</span></span></div>`).join("");
+  if(!inner) inner=`<div class="rep-note">いまのところ、みんなと大きくちがう分野はありません（まんべんなく取り組めています）。</div>`;
+
+  const myAcc=Math.round(myOk/myN*100);
+  el.innerHTML=`<div class="card"><div class="rep-h">同じ学年のみんなとの比べっこ（見立て）</div>
+    <div class="stat"><span>ぜんたいの正解率</span><span class="v" style="font-size:14px;">${myAcc}%<span style="opacity:.55; font-weight:700;">（みんなは ${Math.round(g.acc)}%）</span></span></div>
+    ${inner}
+    <div class="rep-note" style="margin-top:8px;">「みんな」＝同じ学年で遊んでいる${g.players}人の記録の集計。順位ではなく<b>この子の凸凹を知るための目安</b>です。
+    「のびそうな ところ」は責めずに、一緒に1問やってみるのがおすすめ。人数が少ないうちは平均が大きくゆれます。</div>
+  </div>`;
+}
 /* 教科書の変更（親画面）。単元の器が入れ替わるので引き出しを組み直す */
 function bookSet(sub, pub){
   D.books=booksOf(D); D.books[sub]=pub; D.books=booksOf(D);
@@ -3432,8 +3502,10 @@ function openReport(sample){
   }else{
     head+=`<div style="text-align:right;margin-top:10px;"><button class="backbtn" onclick="openReport(true)">📊 サンプルの見え方を見る</button></div>`;
     head+=progressCard();
+    head+=`<div id="compareCard"></div>`;   /* 学年平均との比べっこ（クラウドから届き次第うめる） */
     head+=checksCard();
     head+=settingsCard();
+    setTimeout(fillCompareCard, 30);
   }
   if(log.length<5){
     body.innerHTML=head+infoCard("🌱","まだ きろくが 少ないです。<br>もう少し あそぶと、とくいな分野や<br>調子のいい時間が 見えてきます。<br><br>「サンプルの見え方を見る」ボタンで<br>たまったら どう見えるかを 確認できます。");
