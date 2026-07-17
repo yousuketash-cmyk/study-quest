@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スタディクエスト かんたんスタートガイド</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<style>
+  :root{
+    --bg1:#2b2470; --bg2:#4c1d95;
+    --card:#ffffff; --ink:#243b53; --sub:#627d98;
+    --accent:#7c3aed; --green:#059669; --orange:#f0640c;
+  }
+  *{margin:0; padding:0; box-sizing:border-box;}
+  body{
+    font-family:"Hiragino Maru Gothic ProN","BIZ UDGothic","Yu Gothic",system-ui,sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink); min-height:100vh; padding:20px 14px 48px;
+  }
+  .wrap{max-width:560px; margin:0 auto;}
+  h1{color:#fff; text-align:center; font-size:24px; margin:8px 0 2px; text-shadow:0 2px 8px rgba(0,0,0,.3);}
+  .lead{color:#cfc3f7; text-align:center; font-size:14px; margin-bottom:18px; line-height:1.7;}
+  .card{
+    background:var(--card); border-radius:18px; padding:18px 16px;
+    margin-bottom:14px; box-shadow:0 6px 18px rgba(0,0,0,.18);
+  }
+  .stepnum{
+    display:inline-block; background:var(--accent); color:#fff;
+    border-radius:999px; padding:3px 14px; font-weight:800; font-size:14px; margin-bottom:8px;
+  }
+  .card h2{font-size:18px; margin-bottom:8px;}
+  .card p{font-size:14px; line-height:1.9; color:var(--ink);}
+  .card .note{font-size:12.5px; color:var(--sub); line-height:1.8; margin-top:8px;}
+  .box{
+    background:#f3effc; border:2px solid #ddd3f5; border-radius:12px;
+    padding:10px 12px; margin:10px 0 2px; font-size:14px; line-height:2;
+  }
+  .box b{color:var(--accent);}
+  .btn{
+    display:block; text-align:center; background:linear-gradient(135deg,#7c3aed,#5b21b6);
+    color:#fff; text-decoration:none; font-weight:800; font-size:17px;
+    border-radius:999px; padding:14px 10px; margin:14px auto 4px; max-width:340px;
+    box-shadow:0 4px 12px rgba(91,33,182,.45);
+  }
+  .qrbox{text-align:center; padding-top:4px;}
+  .qrbox img{width:180px; height:180px; border-radius:10px; border:6px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.15);}
+  .qrbox p{font-size:12.5px; color:var(--sub); margin-top:6px;}
+  .divider{color:#cfc3f7; text-align:center; font-weight:800; font-size:14px; margin:22px 0 10px;}
+  ul{padding-left:1.3em;}
+  li{font-size:14px; line-height:1.9;}
+  .url{word-break:break-all; font-size:13px; color:var(--accent); font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🎮 スタディクエスト</h1>
+  <p class="lead">かんたんスタートガイド<br>モンスターをたおしながら、教科書に合わせて勉強できる無料アプリです。<br>はじめかたは <b style="color:#fff;">3ステップ・約3分</b>。</p>
+
+  <div class="card qrbox">
+    <a class="btn" href="https://yousuketash-cmyk.github.io/study-quest/">▶ アプリを ひらく</a>
+    <p style="margin-bottom:8px;">タブレットなど べつの端末で開くときは、このQRコードをカメラで読み取ってください。</p>
+    <img src="assets/qr-app.png" alt="スタディクエストのQRコード">
+    <p class="url">https://yousuketash-cmyk.github.io/study-quest/</p>
+    <p>アプリのインストールは不要。ブラウザ（Safari・Chrome）でそのまま遊べます。</p>
+  </div>
+
+  <div class="card">
+    <span class="stepnum">ステップ 1</span>
+    <h2>かぞくの「あいことば」を つくる</h2>
+    <p>最初の画面で、下の2つを入力して<b>「🏠 あいことばを あたらしく つくる」</b>を押します。</p>
+    <div class="box">
+      <b>あいことば</b>（4文字以上）＝ 家族みんなの合言葉。<br>
+      　例：「たなかけ2026」のような、よそのお家とかぶらないもの<br>
+      <b>おうちのひと用ばんごう</b>（4文字以上）＝ 保護者だけが使う番号
+    </div>
+    <p class="note">あいことばを入れると、記録が自動でクラウドに保存され、どの端末からでも続きから遊べます。2つとも忘れないようにメモしておいてください。</p>
+  </div>
+
+  <div class="card">
+    <span class="stepnum">ステップ 2</span>
+    <h2>お子さんを とうろく</h2>
+    <p>なまえ（ニックネームでOK）と学年を選ぶだけ。</p>
+    <p class="note">「きょうかしょ」の欄は、わからなければ<b>そのまま</b>で大丈夫です（あとから保護者画面で、お使いの教科書の出版社に変更できます。出題の順番が学校の進み方に合います）。</p>
+    <p class="note">きょうだいがいる場合は、あとからプレイヤーを追加できます（最大6人・記録は一人ずつ別々）。</p>
+  </div>
+
+  <div class="card">
+    <span class="stepnum">ステップ 3</span>
+    <h2>あそぶ！</h2>
+    <p>教科をタップすると「いま学校で習っているところ」からバトルが始まります。正解するとモンスターにこうげき。なかまを集めたり、ガチャを回したり、勉強するほど楽しくなる作りです。</p>
+    <p class="note">2回目からは、あいことばを入れて「🔑 はいる」だけ。ちがうタブレットやスマホでも、同じあいことばで続きから遊べます。</p>
+  </div>
+
+  <div class="divider">━━ おうちの人むけ ━━</div>
+
+  <div class="card">
+    <h2>📊 見守り画面（べつページ）</h2>
+    <p>お子さんの遊んだ時間・得意と苦手・成長の記録がグラフで見られます。</p>
+    <p class="url" style="margin-top:8px;">https://yousuketash-cmyk.github.io/study-quest/admin.html</p>
+    <p class="note">開くときに「あいことば」と「おうちのひと用ばんごう」の2つを入力します（お子さんには開けない作りです）。</p>
+  </div>
+
+  <div class="card">
+    <h2>📱 ホーム画面に追加すると便利</h2>
+    <ul>
+      <li><b>iPhone・iPad</b>：Safariで開く → 共有ボタン（□に↑）→「ホーム画面に追加」</li>
+      <li><b>Android</b>：Chromeで開く → 右上の「︙」→「ホーム画面に追加」</li>
+    </ul>
+    <p class="note">アプリのアイコンのようにワンタップで開けるようになり、毎日の習慣にしやすくなります。</p>
+  </div>
+
+  <div class="card">
+    <h2>🔒 安心してお使いいただくために</h2>
+    <ul>
+      <li>利用は無料・広告なし・課金要素なし</li>
+      <li>お預かりするのは「あいことば・お子さんのニックネーム・学年・学習の記録」だけ。本名・メールアドレス・住所などは集めません</li>
+      <li>記録を消したいときは、アプリ内「おうちの人へ」画面からいつでも消せます</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
