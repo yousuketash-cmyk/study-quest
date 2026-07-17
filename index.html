@@ -640,7 +640,8 @@
     <div class="o-title" style="color:#fff;">おうちの人の かくにん</div>
     <div class="o-msg">かぞくの「あいことば」を いれてね</div>
     <div style="width:min(320px,86vw);">
-      <input class="nameinput" id="pgateCode" type="password" maxlength="20" placeholder="あいことば" autocomplete="off" onkeydown="if(event.key==='Enter')pgateSubmit()">
+      <!-- type="password" は iPhone で日本語入力が使えなくなるため、text＋見た目マスクにする（2026-07-17） -->
+      <input class="nameinput" id="pgateCode" type="text" maxlength="20" placeholder="あいことば" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="-webkit-text-security:disc;" onkeydown="if(event.key==='Enter')pgateSubmit()">
       <div id="pgateHint" style="color:#fca5a5; font-weight:800; font-size:13px; min-height:18px; text-align:center;"></div>
     </div>
     <button class="btn mix" onclick="pgateSubmit()">ひらく</button>

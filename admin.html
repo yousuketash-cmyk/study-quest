@@ -45,7 +45,8 @@
 
   <div class="card" id="loginCard">
     <input class="in" id="code" placeholder="あいことば" autocomplete="off">
-    <input class="in" id="pin" type="password" placeholder="おうちのひと用ばんごう" autocomplete="off">
+    <!-- type="password" は iPhone で日本語入力が使えなくなるため、text＋見た目マスクにする（2026-07-17） -->
+    <input class="in" id="pin" type="text" placeholder="おうちのひと用ばんごう" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="-webkit-text-security:disc;">
     <div class="hint" id="hint"></div>
     <button class="btn" onclick="load()">ひらく</button>
   </div>
