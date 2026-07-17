@@ -945,7 +945,7 @@ function renderPlayers(){
 }
 let NEW_GRADE=3;   /* 新しい子の学年（引き出しが できている学年だけ えらべる） */
 let NEW_BOOKS={};  /* 教科書えらび（教科ごとの出版社。空＝標準） */
-const BOOK_SUB_LABEL={math:"さんすう", sci:"りか", soc:"しゃかい"};
+const BOOK_SUB_LABEL={math:"さんすう", kokugo:"こくご", sci:"りか", soc:"しゃかい"};
 function pickGrade(g){
   if(!GRADE_PACKS[g]) return;
   NEW_GRADE=g;
@@ -962,14 +962,14 @@ function pickBookPreset(b){
 function renderBookCustom(){
   const box=document.getElementById("bookCustom");
   if(!box || box.style.display==="none") return;
-  const subs=(NEW_GRADE>=3)?["math","sci","soc"]:["math"];
+  const subs=(NEW_GRADE>=3)?["math","kokugo","sci","soc"]:["math","kokugo"];
   box.innerHTML=subs.map(sub=>{
     const cur=NEW_BOOKS[sub]||BOOK_STD[sub];
     const opts=BOOK_PUBS[sub].map(p=>`<option value="${p[0]}"${p[0]===cur?" selected":""}>${p[1]}${p[0]===BOOK_STD[sub]?"（標準）":""}</option>`).join("");
     return `<div style="display:flex; align-items:center; gap:8px; margin:4px 0; justify-content:center;">
       <span style="font-weight:800; min-width:64px; text-align:right;">${BOOK_SUB_LABEL[sub]}</span>
       <select onchange="NEW_BOOKS['${sub}']=this.value" style="font-size:14px; padding:6px 8px; border-radius:10px;">${opts}</select></div>`;
-  }).join("");
+  }).join("")+`<div style="font-size:12px; color:#829ab1; margin-top:6px; line-height:1.7;">えいごは 全国ほぼ共通のため えらぶ必要は ありません</div>`;
 }
 function openNewPlayer(){
   document.getElementById("playerNameInput").value="";
@@ -1724,12 +1724,15 @@ const BOOK_PUBS={
   math:[["keirin","啓林館"],["tosho","東京書籍"],["gakuto","学校図書"],["kyoshup","教育出版"],["dainippon","大日本図書"],["nichibun","日本文教出版"]],
   sci: [["dainippon","大日本図書"],["tosho","東京書籍"],["gakuto","学校図書"],["kyoshup","教育出版"],["keirin","啓林館"],["shinkyo","信州教育出版社"]],
   soc: [["kyoshup","教育出版"],["tosho","東京書籍"],["nichibun","日本文教出版"]],
+  /* 国語のR6発行社は3社のみ。選択は保存され、漢字の月わりは今は全社共通の目安
+     （単元ごとの新出漢字は無料公開されておらず、実物の教科書データがそろいしだい出版社別に切り替える） */
+  kokugo:[["mitsumura","光村図書"],["tosho","東京書籍"],["kyoshup","教育出版"]],
 };
-const BOOK_STD={math:"keirin", sci:"dainippon", soc:"kyoshup"};   /* 標準＝従来の秦野 */
+const BOOK_STD={math:"keirin", sci:"dainippon", soc:"kyoshup", kokugo:"mitsumura"};   /* 標準＝従来の秦野 */
 function booksOf(d){
   const b=(d&&d.books)||{};
   const ok=(sub,v)=>BOOK_PUBS[sub].some(p=>p[0]===v)?v:BOOK_STD[sub];
-  return {math:ok("math",b.math), sci:ok("sci",b.sci), soc:ok("soc",b.soc)};
+  return {math:ok("math",b.math), sci:ok("sci",b.sci), soc:ok("soc",b.soc), kokugo:ok("kokugo",b.kokugo)};
 }
 function resolveBookUnits(subject, pub, grade, baseUnits){
   if(!baseUnits || !pub || pub===BOOK_STD[subject]) return baseUnits;
@@ -3272,11 +3275,11 @@ function progressCard(){
   /* 見出しと選択欄：教科ごとに選んだ出版社を表示・ここで変更もできる */
   const bs=booksOf(D);
   const pubName=(sub)=>(BOOK_PUBS[sub].find(p=>p[0]===bs[sub])||[])[1]||"";
-  const bookLabel="算数＝"+pubName("math")+((D.grade>=3)?"・理科＝"+pubName("sci")+"・社会＝"+pubName("soc"):"")+"・国語＝光村基準（全社共通）";
-  const bookSubs=(D.grade>=3)?["math","sci","soc"]:["math"];
+  const bookLabel="算数＝"+pubName("math")+"・国語＝"+pubName("kokugo")+((D.grade>=3)?"・理科＝"+pubName("sci")+"・社会＝"+pubName("soc"):"");
+  const bookSubs=(D.grade>=3)?["math","kokugo","sci","soc"]:["math","kokugo"];
   const bookRows=bookSubs.map(sub=>{
     const opts=BOOK_PUBS[sub].map(p=>`<option value="${p[0]}"${p[0]===bs[sub]?" selected":""}>${p[1]}${p[0]===BOOK_STD[sub]?"（標準）":""}</option>`).join("");
-    return `<div class="stat" style="border-bottom:none; padding:7px 4px;"><span>${({math:"算数",sci:"理科",soc:"社会"})[sub]}の教科書</span>
+    return `<div class="stat" style="border-bottom:none; padding:7px 4px;"><span>${({math:"算数",kokugo:"国語",sci:"理科",soc:"社会"})[sub]}の教科書</span>
       <select onchange="bookSet('${sub}', this.value)" style="font-size:13px; padding:5px 8px; border-radius:10px; max-width:56%;">${opts}</select></div>`;
   }).join("");
   return `<div class="card"><div class="rep-h">教科書のすすみ（${bookLabel}）</div>
@@ -3292,7 +3295,7 @@ function progressCard(){
       ${paceBtn("fast","はやめ")}${paceBtn("std","ふつう")}${paceBtn("slow","ゆっくり")}
     </div>
     ${uprogRows()}
-    <div class="rep-note" style="margin-top:8px;">今日の日付から標準ペースで自動判定します（長期休みは進みません）。算数の時期は選んだ教科書の年間指導計画準拠、漢字の月わりは標準の目安です。出題・チェックは「ならった範囲」だけから出ます。</div>
+    <div class="rep-note" style="margin-top:8px;">今日の日付から標準ペースで自動判定します（長期休みは進みません）。算数の時期は選んだ教科書の年間指導計画準拠。国語の漢字の月わりは今はどの出版社でも共通の目安です（教科書データがそろいしだい、選んだ出版社の順に切り替わる予定）。出題・チェックは「ならった範囲」だけから出ます。英語は全国ほぼ共通のため選択はありません。</div>
   </div>`;
 }
 function paceSet(v){ D.pace=v; KNOWN_KANJI=null; saveData(); openReport(); }
