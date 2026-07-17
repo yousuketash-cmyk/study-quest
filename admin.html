@@ -67,6 +67,18 @@
 <script src="data/advanced.js"></script>
 <script src="data/dokkai.js"></script>
 <script src="data/book-kawaguchi.js"></script>
+<script src="data/book-cal-math-tosho.js"></script>
+<script src="data/book-cal-math-gakuto.js"></script>
+<script src="data/book-cal-math-kyoshup.js"></script>
+<script src="data/book-cal-math-dainippon.js"></script>
+<script src="data/book-cal-math-nichibun.js"></script>
+<script src="data/book-cal-sci-tosho.js"></script>
+<script src="data/book-cal-sci-gakuto.js"></script>
+<script src="data/book-cal-sci-kyoshup.js"></script>
+<script src="data/book-cal-sci-keirin.js"></script>
+<script src="data/book-cal-sci-shinkyo.js"></script>
+<script src="data/book-cal-soc-tosho.js"></script>
+<script src="data/book-cal-soc-nichibun.js"></script>
 <script>
 const CLOUD_URL="https://vcrsoxekorhgcpicexjl.supabase.co";
 const CLOUD_KEY="sb_publishable_ZcBgiM-YOdHMnSjd3_xY6w_zoS8f6uE";
@@ -123,9 +135,28 @@ function unitListsFor(d){
     6:{math:MATH_UNITS_G6, sci:SCI_UNITS_G6, soc:SOC_UNITS_G6, eng:ENG_UNITS_G6},
   };
   const p=Object.assign({}, packs[grade]||packs[3]);
-  /* 教科書セット（かわぐち等）：単元カレンダーの差しかえを ゲームと同じに再現 */
-  const bp=(typeof BOOK_PACKS!=="undefined" && BOOK_PACKS[d.book] ? BOOK_PACKS[d.book] : {})[grade];
-  if(bp){ if(bp.mathUnits) p.math=bp.mathUnits; if(bp.sciUnits) p.sci=bp.sciUnits; if(bp.socUnits) p.soc=bp.socUnits; }
+  /* 教科書えらび（教科ごとに出版社）：単元カレンダーの差しかえを ゲームと同じに再現 */
+  const STD={math:"keirin", sci:"dainippon", soc:"kyoshup"};
+  const books=(d.books&&typeof d.books==="object")?d.books:((d.book==="kawaguchi")?{math:"tosho",sci:"tosho",soc:"tosho"}:{});
+  const KEY2SUB={math:"math", sci:"sci", soc:"soc"};
+  Object.keys(KEY2SUB).forEach(k=>{
+    const pub=books[k]; if(!pub || pub===STD[k] || !p[k]) return;
+    if(pub==="tosho" && grade===3){   /* 東書3年は川口実装をそのまま */
+      const kawa=(typeof BOOK_PACKS!=="undefined" && BOOK_PACKS.kawaguchi ? BOOK_PACKS.kawaguchi[3] : null)||{};
+      const m={math:kawa.mathUnits, sci:kawa.sciUnits, soc:kawa.socUnits}[k];
+      if(m){ p[k]=m; return; }
+    }
+    const cal=(typeof BOOK_CAL!=="undefined" && BOOK_CAL[k] && BOOK_CAL[k][pub]) ? BOOK_CAL[k][pub][grade] : null;
+    if(!cal) return;
+    const src={}; p[k].forEach(u=>src[u.id]=u);
+    const out=[];
+    cal.forEach((e,i)=>{
+      const b=e.base?src[e.base]:null;
+      if(!b && k!=="math") return;
+      out.push(Object.assign({}, b||{}, {id:"bk_"+pub+"_g"+grade+"_"+(i+1), name:e.name, term:e.term, s:e.s}));
+    });
+    p[k]=out;
+  });
   return [
     {label:"🔢 算数",   sub:"math",    units:p.math},
     {label:"🔬 理科",   sub:"science", units:p.sci},
