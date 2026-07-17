@@ -1263,8 +1263,8 @@ function renderHome(){
   document.getElementById("totalCount").textContent=D.total;
   document.getElementById("homeDex").textContent=collectedCount();
   document.getElementById("homeDexAll").textContent=totalMonsters();
-  document.getElementById("homeHat").textContent=equippedEmoji("head");
-  document.getElementById("homeMate").textContent=equippedEmoji("mate");
+  document.getElementById("homeHat").innerHTML=equippedEmoji("head");
+  document.getElementById("homeMate").innerHTML=equippedEmoji("mate");
   const cp=currentPlayer();
   document.getElementById("homePlayerName").textContent = cp ? cp.name : "";
   document.getElementById("homeStreak").textContent = (D.loginStreak>=2) ? "🔥 "+D.loginStreak+"日 れんぞくで あそんでいるよ！" : "";
@@ -2298,7 +2298,7 @@ function maybeAssist(){
   const zone=document.getElementById("enemyZone");
   const d=document.createElement("div");
   d.className="dmg assist"; d.style.left=(30+Math.random()*40)+"%"; d.style.top="55%";
-  d.innerHTML=m.emoji+" おうえん!<br>"+dmg;
+  d.innerHTML=charaHTML(monImg(m.id), m.emoji)+" おうえん!<br>"+dmg;
   zone.appendChild(d);
   setTimeout(()=>d.remove(),800);
 }
@@ -2725,7 +2725,7 @@ function showGachaResult(item, dup, compBonus, seasonBonus){
   const meta=RARITY[item.r];
   const st=document.getElementById("grStars");
   st.textContent=starsOf(item.r); st.style.color=meta.col;
-  document.getElementById("grEmoji").textContent=item.emoji;
+  document.getElementById("grEmoji").innerHTML=charaHTML(gachaImg(item.id), item.emoji);
   const nm=document.getElementById("grName");
   nm.textContent=item.name; nm.style.color=meta.col;
   const seasonTag = item.season ? SEASONS[item.season].emoji+SEASONS[item.season].name+"げんてい " : "";
@@ -2753,7 +2753,7 @@ function equippedEmoji(slot){
   const id=D.equip && D.equip[slot];
   if(!id) return "";
   const it=gachaItemById(id);
-  return it ? it.emoji : "";
+  return it ? charaHTML(gachaImg(it.id), it.emoji) : "";
 }
 /* ジェム獲得の共通口（うみコース：+10%） */
 function addGems(n){
@@ -2835,7 +2835,7 @@ function skinGridHtml(kind){
     const has=owned.includes(it.id), eq=D.equip[slot]===it.id;
     const cls="skincell"+(eq?" eq":"")+(has?"":" lock");
     const click=has ? ` onclick="equipToggle('${kind}','${it.id}')"` : "";
-    cells+=`<div class="${cls}"${click}><div class="se">${has?it.emoji:"❓"}</div>
+    cells+=`<div class="${cls}"${click}><div class="se">${has?charaHTML(gachaImg(it.id), it.emoji):"❓"}</div>
       <div class="sn">${has?it.name:"？？？"}</div>
       <div class="sr" style="color:${RARITY[it.r].col};">${starsOf(it.r)}</div></div>`;
   });
@@ -2900,7 +2900,7 @@ function winBattle(){
   const rb=document.getElementById("recruitBox");
   if(recruited){
     rb.innerHTML=`<div class="newmon"><div class="nm-tag">なかまが ふえた！</div>
-      <div class="nm-emoji">${recruited.emoji}</div><div class="nm-name">${recruited.name}</div></div>`;
+      <div class="nm-emoji">${charaHTML(monImg(recruited.id), recruited.emoji)}</div><div class="nm-name">${recruited.name}</div></div>`;
   }else if(!remainAll.length){
     rb.innerHTML=`<div class="o-msg">この きょうかの なかまは ぜんいん あつめた！<br>すごい！</div>`;
   }else if(!candidates.length){
@@ -3185,7 +3185,7 @@ function openDex(){
     s.monsters.forEach(m=>{
       const owned=isCollected(s.id,m.id);
       cells+=`<div class="moncell${owned?"":" locked"}">
-        <div class="m-emoji${owned?"":" shadowed"}">${m.emoji}</div>
+        <div class="m-emoji${owned?"":" shadowed"}">${charaHTML(monImg(m.id), m.emoji)}</div>
         <div class="m-name">${owned?m.name:"？？？"}</div>
         <div class="mstars" style="color:${RARITY[m.r||1].col};">${starsOf(m.r||1)}</div></div>`;
     });
@@ -3200,7 +3200,7 @@ function openDex(){
   mates.forEach(it=>{
     const owned=D.mates.includes(it.id);
     mcells+=`<div class="moncell${owned?"":" locked"}">
-      <div class="m-emoji${owned?"":" shadowed"}">${it.emoji}</div>
+      <div class="m-emoji${owned?"":" shadowed"}">${charaHTML(gachaImg(it.id), it.emoji)}</div>
       <div class="m-name">${owned?it.name:"？？？"}</div>
       <div class="mstars" style="color:${RARITY[it.r].col};">${starsOf(it.r)}</div></div>`;
   });
@@ -3222,7 +3222,7 @@ function openDex(){
     items.forEach(it=>{
       const owned=ownsGachaItem(it);
       /* いまの季節＝シルエットでチラ見せ／ほかの季節＝❓のまま おたのしみ */
-      const em = owned ? it.emoji : (now ? it.emoji : "❓");
+      const em = (owned || now) ? charaHTML(gachaImg(it.id), it.emoji) : "❓";
       cells+=`<div class="moncell${owned?"":" locked"}">
         <div class="m-emoji${owned?"":" shadowed"}">${em}</div>
         <div class="m-name">${owned?it.name:"？？？"}</div>
