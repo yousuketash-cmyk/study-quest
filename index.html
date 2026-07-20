@@ -11,6 +11,17 @@
     --bg1:#1b2a6b; --bg2:#3b1f7a; --card:#ffffff; --ink:#243b53;
     --accent:#ff8a1e; --accent2:#ffd23f; --good:#22c55e; --bad:#ef4444;
     --blue:#3b82f6; --pink:#ec4899; --green:#10b981; --amber:#f59e0b; --purple:#8b5cf6;
+    /* せかいのきせかえ用（applyTheme が差し替える。既定値＝ぼうけん） */
+    --tx:#fff;                          /* 背景の上の文字 */
+    --tx2:#ffe;                         /* 背景の上のうすい文字 */
+    --txsh:0 3px 0 rgba(0,0,0,.2);      /* タイトルの影 */
+    --topbg:rgba(255,255,255,.14);      /* ヘッダーの半とうめい */
+    --chipbg:rgba(255,255,255,.16);     /* もどるボタンなどの半とうめい */
+    --btnA1:#ff6a3d; --btnA2:#e11d48;   /* メインボタン（ぼうけんにでる） */
+    --enemy1:#2a1b5e; --enemy2:#3f2a80; /* バトルの敵ゾーン背景 */
+    --enemytx:#fff;                     /* 敵ゾーンの文字 */
+    --ename:#ffd23f;                    /* 敵の名まえの色 */
+    --accentDk:#c96f10;                 /* accent ボタンの下かげ */
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; height:100%;}
@@ -23,7 +34,7 @@
   #app{max-width:520px; margin:0 auto; min-height:100%; padding:14px 14px 40px; position:relative;}
 
   /* ===== ヘッダー ===== */
-  .topbar{background:rgba(255,255,255,.14); border-radius:20px; padding:11px 14px; color:#fff;
+  .topbar{background:var(--topbg); border-radius:20px; padding:11px 14px; color:var(--tx);
     backdrop-filter:blur(4px); box-shadow:0 6px 20px rgba(0,0,0,.25);}
   .topbar .row{display:flex; align-items:center; gap:12px;}
   .buddy-mini{font-size:32px; line-height:1; filter:drop-shadow(0 2px 3px rgba(0,0,0,.3));}
@@ -42,11 +53,11 @@
   .card{background:var(--card); border-radius:26px; padding:20px; margin-top:14px;
     box-shadow:0 12px 30px rgba(0,0,0,.3);}
 
-  h1{color:#fff; text-align:center; margin:16px 0 2px; font-size:27px; letter-spacing:1px;
-    text-shadow:0 3px 0 rgba(0,0,0,.2);}
-  .subtitle{color:#ffe; text-align:center; margin:0 0 4px; font-size:13px; opacity:.9;}
-  .sectitle{color:#fff; text-align:center; font-size:20px; font-weight:800; margin:14px 0 2px;}
-  .secsub{color:#ffe; text-align:center; font-size:12px; opacity:.85; margin:0;}
+  h1{color:var(--tx); text-align:center; margin:16px 0 2px; font-size:27px; letter-spacing:1px;
+    text-shadow:var(--txsh);}
+  .subtitle{color:var(--tx2); text-align:center; margin:0 0 4px; font-size:13px; opacity:.9;}
+  .sectitle{color:var(--tx); text-align:center; font-size:20px; font-weight:800; margin:14px 0 2px;}
+  .secsub{color:var(--tx2); text-align:center; font-size:12px; opacity:.85; margin:0;}
 
   .buddy-big{font-size:96px; text-align:center; line-height:1.1; margin:4px 0;
     filter:drop-shadow(0 8px 10px rgba(0,0,0,.25)); animation:float 3s ease-in-out infinite;}
@@ -59,14 +70,27 @@
     font-size:19px; font-weight:800; color:#fff; cursor:pointer; margin-top:11px;
     box-shadow:0 6px 0 rgba(0,0,0,.18); transition:transform .08s, box-shadow .08s; font-family:inherit;}
   .btn:active{transform:translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,.18);}
-  .btn.adventure{background:linear-gradient(135deg,#ff6a3d,#e11d48);}
+  .btn.adventure{background:linear-gradient(135deg,var(--btnA1),var(--btnA2));}
   .btn.dex{background:linear-gradient(135deg,#8b5cf6,#6d28d9);}
   .btn.mix{background:linear-gradient(135deg,#10b981,#059669);}
   .btn.ghost{background:rgba(255,255,255,.2); color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.15); font-size:15px; padding:13px;}
   .menu-emoji{font-size:24px; margin-right:6px;}
 
-  .backbtn{background:rgba(255,255,255,.16); color:#fff; border:none; border-radius:14px;
+  .backbtn{background:var(--chipbg); color:var(--tx); border:none; border-radius:14px;
     padding:8px 14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit;}
+
+  /* ===== せかいえらび（テーマ） ===== */
+  .thgrid{display:flex; flex-direction:column; gap:10px; margin-top:8px;}
+  .thcard{display:flex; align-items:center; gap:12px; width:100%; border:3px solid transparent; border-radius:18px;
+    padding:12px 14px; cursor:pointer; text-align:left; font-family:inherit;
+    box-shadow:0 5px 0 rgba(0,0,0,.15); transition:transform .08s;}
+  .thcard:active{transform:scale(.98);}
+  .thcard.on{border-color:#fff; box-shadow:0 0 0 3px rgba(255,210,63,.85), 0 5px 0 rgba(0,0,0,.15);}
+  .thcard .ticon{font-size:30px; line-height:1;}
+  .thcard .tname{font-weight:900; font-size:17px;}
+  .thcard .tsub{font-size:11px; opacity:.9; font-weight:800;}
+  .thcard .tsel{margin-left:auto; font-size:11px; font-weight:900; background:rgba(255,255,255,.28); border-radius:999px; padding:3px 9px; flex-shrink:0;}
+  .thcard.soon{filter:grayscale(.5) brightness(.85); cursor:default;}
 
   /* ===== 教科えらび ===== */
   .subgrid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -102,12 +126,12 @@
     padding:10px 14px; font-size:13px; font-weight:800; margin-top:14px; text-align:center;}
 
   /* ===== バトル ===== */
-  .battle-top{display:flex; justify-content:space-between; align-items:center; color:#fff; padding:0 4px;}
+  .battle-top{display:flex; justify-content:space-between; align-items:center; color:var(--tx); padding:0 4px;}
   .hearts{font-size:22px; letter-spacing:2px;}
-  .enemy-zone{background:linear-gradient(180deg,#2a1b5e,#3f2a80); border-radius:24px; padding:16px;
+  .enemy-zone{background:linear-gradient(180deg,var(--enemy1),var(--enemy2)); border-radius:24px; padding:16px;
     margin-top:10px; text-align:center; position:relative; overflow:hidden;
     box-shadow:0 10px 26px rgba(0,0,0,.35);}
-  .enemy-name{color:#ffd23f; font-weight:800; font-size:16px;}
+  .enemy-name{color:var(--ename); font-weight:800; font-size:16px;}
   .enemy-sprite{font-size:84px; line-height:1; margin:6px 0; display:inline-block;
     filter:drop-shadow(0 6px 8px rgba(0,0,0,.4)); transition:transform .1s;
     animation:enemyidle 2.6s ease-in-out infinite;}   /* 呼吸（生きてる感） */
@@ -156,8 +180,8 @@
   .ehpbar{height:16px; background:rgba(0,0,0,.4); border-radius:10px; overflow:hidden; margin:4px 22px 0;}
   .ehpfill{height:100%; width:100%; border-radius:10px;
     background:linear-gradient(90deg,#f87171,#ef4444); transition:width .4s cubic-bezier(.2,.8,.2,1);}
-  .ehptext{color:#fff; font-size:11px; margin-top:3px; opacity:.85;}
-  .dmg{position:absolute; font-size:34px; font-weight:900; color:#ffd23f; text-shadow:0 2px 4px rgba(0,0,0,.6);
+  .ehptext{color:var(--enemytx); font-size:11px; margin-top:3px; opacity:.85;}
+  .dmg{position:absolute; font-size:34px; font-weight:900; color:var(--ename); text-shadow:0 2px 4px rgba(0,0,0,.6);
     pointer-events:none; animation:dmgfly .8s ease-out forwards;}
   @keyframes dmgfly{0%{transform:translateY(0) scale(.5); opacity:0;} 20%{opacity:1; transform:translateY(-10px) scale(1.2);}
     100%{transform:translateY(-70px) scale(1); opacity:0;}}
@@ -183,7 +207,7 @@
   .key{background:#f0f4f8; border:none; border-radius:15px; padding:16px; font-size:24px; font-weight:800;
     color:var(--ink); cursor:pointer; font-family:inherit; box-shadow:0 4px 0 #d6e0ea;}
   .key:active{transform:translateY(3px); box-shadow:0 1px 0 #d6e0ea;}
-  .key.act{background:var(--accent); color:#fff; box-shadow:0 4px 0 #c96f10;}
+  .key.act{background:var(--accent); color:#fff; box-shadow:0 4px 0 var(--accentDk);}
   .key.del{background:#ffe3d1; color:#c2410c; box-shadow:0 4px 0 #f0c3a2;}
 
   /* ===== フィードバック・演出 ===== */
@@ -213,7 +237,7 @@
 
   /* ===== 図鑑 ===== */
   .dexsub{margin-top:16px;}
-  .dexsub-head{display:flex; justify-content:space-between; align-items:center; color:#fff; font-weight:800;
+  .dexsub-head{display:flex; justify-content:space-between; align-items:center; color:var(--tx); font-weight:800;
     padding:0 4px 6px;}
   .dexsub-head .dcount{font-size:13px; opacity:.9;}
   .dexgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
@@ -319,8 +343,8 @@
   .halfrow{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .btn.half{font-size:15px; padding:13px 6px;}
 
-  .footnote{color:#fff; opacity:.6; text-align:center; font-size:12px; margin-top:20px;}
-  .reset{color:#fff; opacity:.5; text-align:center; font-size:11px; margin-top:8px; text-decoration:underline; cursor:pointer;}
+  .footnote{color:var(--tx); opacity:.6; text-align:center; font-size:12px; margin-top:20px;}
+  .reset{color:var(--tx); opacity:.5; text-align:center; font-size:11px; margin-top:8px; text-decoration:underline; cursor:pointer;}
   .nameinput{width:100%; font-size:20px; padding:12px; border:2px solid #cbd5e1; border-radius:12px; text-align:center; font-family:inherit; box-sizing:border-box; margin-bottom:10px;}
   .namehint{color:#ef4444; font-size:12px; font-weight:800; text-align:center; min-height:16px; margin-bottom:6px;}
 </style>
@@ -391,6 +415,9 @@
         </div>
         <div id="bookCustom" style="display:none; margin-top:8px;"></div>
       </div>
+      <div style="font-weight:800; margin:12px 0 2px;">どの せかいで あそぶ？</div>
+      <div style="font-size:12px; color:#829ab1; font-weight:800;">あとから いつでも かえられるよ</div>
+      <div id="themePickNew"></div>
       <button class="btn adventure" onclick="createPlayer()"><span class="menu-emoji">🎒</span>これで はじめる！</button>
     </div>
   </section>
@@ -433,6 +460,7 @@
     </div>
     <div class="card" id="missionCard"></div>
     <div class="footnote">あつめた なかま：<span id="homeDex">0</span> / <span id="homeDexAll">0</span> ひき ／ といた もんだい：<span id="totalCount">0</span>もん</div>
+    <div class="reset" onclick="openThemePick()">🎨 せかいを かえる</div>
     <div class="reset" onclick="backToPlayers()">👤 <span id="homePlayerName"></span>で あそんでいるよ（こうたいは ここ）</div>
     <div class="reset" onclick="openReportGuard()">📊 おうちの人へ（きろく・せってい）</div>
   </section>
@@ -527,7 +555,7 @@
   <section class="screen" id="scDex">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <button class="backbtn" onclick="goHome()">← もどる</button>
-      <span style="color:#fff; font-weight:800;">ぜんぶで <span id="dexTotalNow">0</span> / <span id="dexTotalAll">0</span> ひき</span>
+      <span style="color:var(--tx); font-weight:800;">ぜんぶで <span id="dexTotalNow">0</span> / <span id="dexTotalAll">0</span> ひき</span>
     </div>
     <div class="sectitle">なかま ずかん</div>
     <p class="secsub">ぜんきょうか クリアで コンプリート！</p>
@@ -538,7 +566,7 @@
   <section class="screen" id="scGacha">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <button class="backbtn" onclick="goHome()">← もどる</button>
-      <span style="color:#ffd23f; font-weight:900; font-size:16px;">💎 <span id="gachaGems">0</span></span>
+      <span style="color:var(--accent2); font-weight:900; font-size:16px;">💎 <span id="gachaGems">0</span></span>
     </div>
     <div class="sectitle">タマゴガチャ</div>
     <p class="secsub">なにが でるかは おたのしみ！</p>
@@ -556,18 +584,26 @@
   <section class="screen" id="scStatus">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <button class="backbtn" onclick="goHome()">← もどる</button>
-      <span style="color:#fff; font-weight:800; font-size:14px;">じぶんの ステータス</span>
+      <span style="color:var(--tx); font-weight:800; font-size:14px;">じぶんの ステータス</span>
     </div>
     <div class="sectitle">わたしの きろく</div>
     <p class="secsub">いままで がんばった しるし！</p>
     <div id="statusBody"></div>
   </section>
 
+  <!-- せかいを かえる（テーマきせかえ） -->
+  <section class="screen" id="scTheme">
+    <div style="display:flex; justify-content:flex-start;"><button class="backbtn" onclick="goHome()">← もどる</button></div>
+    <div class="sectitle">🎨 せかいを えらぼう</div>
+    <p class="secsub">すきな せかいに きせかえられるよ<br>あとから いつでも かえられる！</p>
+    <div class="card" id="themePickCur"></div>
+  </section>
+
   <!-- おうちの人へ（レポート） -->
   <section class="screen" id="scReport">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <button class="backbtn" onclick="goHome()">← もどる</button>
-      <span style="color:#fff; font-weight:800; font-size:14px;">おうちの人へ</span>
+      <span style="color:var(--tx); font-weight:800; font-size:14px;">おうちの人へ</span>
     </div>
     <div class="sectitle">きろく と 気づき</div>
     <p class="secsub">まいにちの ようすが たまっていきます</p>
@@ -945,6 +981,12 @@ function renderPlayers(){
 }
 let NEW_GRADE=3;   /* 新しい子の学年（引き出しが できている学年だけ えらべる） */
 let NEW_BOOKS={};  /* 教科書えらび（教科ごとの出版社。空＝標準） */
+let NEW_THEME="bouken";   /* せかい（テーマ）えらび */
+function pickNewTheme(k){
+  if(!THEMES[k] || !THEMES[k].ready) return;
+  NEW_THEME=k;
+  document.getElementById("themePickNew").innerHTML=themeCardsHtml(NEW_THEME,"pickNewTheme");
+}
 const BOOK_SUB_LABEL={math:"さんすう", kokugo:"こくご", sci:"りか", soc:"しゃかい"};
 function pickGrade(g){
   if(!GRADE_PACKS[g]) return;
@@ -975,6 +1017,8 @@ function openNewPlayer(){
   document.getElementById("playerNameInput").value="";
   document.getElementById("playerNameHint").textContent="";
   pickGrade(3); pickBookPreset("std");
+  NEW_THEME="bouken";
+  document.getElementById("themePickNew").innerHTML=themeCardsHtml(NEW_THEME,"pickNewTheme");
   show("scNewPlayer");
   setTimeout(()=>document.getElementById("playerNameInput").focus(),80);
 }
@@ -986,7 +1030,7 @@ function createPlayer(){
   PLAYERS.list.push(pl);
   savePlayers();
   /* えらんだ学年と教科書を さいしょの記録として書いておく（のこりは normalizeSave が うめる） */
-  localStorage.setItem(keyFor(id), JSON.stringify({grade:NEW_GRADE, books:NEW_BOOKS}));
+  localStorage.setItem(keyFor(id), JSON.stringify({grade:NEW_GRADE, books:NEW_BOOKS, theme:NEW_THEME}));
   if(cloudOn()){
     rpc("sq_add_player",{p_code:FAMILY.code, p_name:name})
       .then(cid=>{ if(cid){ pl.cloudId=cid; savePlayers(); } }).catch(()=>{});
@@ -1008,12 +1052,14 @@ async function startAs(id){
     }catch(e){ /* オフラインなら ローカルのまま */ }
   }
   applyGradePack();   /* この子の学年の引き出しに入れ替え（学習ずみ漢字も作り直す） */
+  applyTheme(D.theme);   /* この子の せかい（テーマ）に 着せかえ */
   renderHeader(); renderHome();
   if(!D.course){ renderStarter(); show("scStarter"); }
   else { goHome(); checkLoginBonus(); }
 }
 function backToPlayers(){
   if(D){ saveData(); pushNow(); }
+  applyTheme("bouken");   /* プレイヤーえらびは 共通のすがた */
   renderPlayers(); show("scPlayers");
 }
 /* ============ かぞくの あいことば と クラウド同期 ============ */
@@ -1156,6 +1202,125 @@ function deletePlayer(id){
   if(PID===id){ location.reload(); } else { openReport(); }
 }
 
+/* ============ せかいのきせかえ（世界観テーマ） ============
+   D.theme（プレイヤーごと保存）で 画面の色と ことばの要所が 変わる。
+   絵（キャラ）と 機能は 全テーマ共通で、呼び名だけ 変える。
+   くわしくは spec/せかいのきせかえ-設計メモ.md */
+const THEMES={
+  bouken:{ name:"ぼうけん", sub:"ゆうしゃ・モンスター", icon:"⚔️", ready:true,
+    chip:"linear-gradient(135deg,#1b2a6b,#3b1f7a)", chiptx:"#fff",
+    vars:{} },   /* 既定＝:root の色そのまま（既存プレイヤーの見た目は変えない） */
+  cosmo:{ name:"コスモ", sub:"うちゅう・ネオン", icon:"🌌", ready:true,
+    chip:"linear-gradient(135deg,#0d0a2e,#28306e)", chiptx:"#7ee8ff",
+    vars:{"--bg1":"#0d0a2e","--bg2":"#241b54","--accent":"#22d3ee","--accent2":"#7ee8ff",
+      "--tx2":"#d9e6ff","--topbg":"rgba(120,160,255,.14)","--chipbg":"rgba(120,160,255,.16)",
+      "--btnA1":"#22d3ee","--btnA2":"#3b82f6","--enemy1":"#0f1038","--enemy2":"#28306e",
+      "--ename":"#7ee8ff","--accentDk":"#1583a8"} },
+  yume:{ name:"ゆめかわ", sub:"まほう・パステル", icon:"🌸", ready:true,
+    chip:"linear-gradient(135deg,#ffdff0,#e4d7ff)", chiptx:"#93356b",
+    vars:{"--bg1":"#ffdff0","--bg2":"#e4d7ff","--accent":"#f472b6","--accent2":"#ff8fc8",
+      "--tx":"#93356b","--tx2":"#b0568a","--txsh":"0 3px 0 rgba(255,255,255,.55)",
+      "--topbg":"rgba(255,255,255,.55)","--chipbg":"rgba(255,255,255,.6)",
+      "--btnA1":"#fb7fc0","--btnA2":"#ec4899","--enemy1":"#ffd9ec","--enemy2":"#eedaff",
+      "--enemytx":"#a04a78","--ename":"#d6318f","--accentDk":"#c2547e"} },
+  dino:{ name:"きょうりゅう", sub:"じゅんび中", icon:"🦕", ready:false,
+    chip:"linear-gradient(135deg,#14532d,#3f6212)", chiptx:"#d9f99d" },
+  sweets:{ name:"スイーツ", sub:"じゅんび中", icon:"🍰", ready:false,
+    chip:"linear-gradient(135deg,#7c2d12,#b45309)", chiptx:"#fde68a" },
+};
+/* せかいえらびカード（新規作成と「せかいを かえる」で共用）。handler にはテーマキーが渡る */
+function themeCardsHtml(cur, handler){
+  return '<div class="thgrid">'+Object.entries(THEMES).map(([k,t])=>{
+    if(!t.ready) return `<div class="thcard soon" style="background:${t.chip}; color:${t.chiptx};">
+      <span class="ticon">${t.icon}</span><span><div class="tname">${t.name}</div><div class="tsub">じゅんび中！ おたのしみに</div></span></div>`;
+    const on = k===cur;
+    return `<button type="button" class="thcard${on?" on":""}" style="background:${t.chip}; color:${t.chiptx};" onclick="${handler}('${k}')">
+      <span class="ticon">${t.icon}</span><span><div class="tname">${t.name}</div><div class="tsub">${t.sub}</div></span>${on?'<span class="tsel">えらび中</span>':""}</button>`;
+  }).join("")+'</div>';
+}
+let CUR_THEME="bouken";
+function themeOf(t){ return (THEMES[t] && THEMES[t].ready) ? t : "bouken"; }
+function applyTheme(t){
+  const key=themeOf(t), th=THEMES[key];
+  /* 色：:root の変数を差し替える（bouken は removeProperty で 既定にもどる） */
+  const rs=document.documentElement.style;
+  ["--bg1","--bg2","--accent","--accent2","--tx","--tx2","--txsh","--topbg","--chipbg",
+   "--btnA1","--btnA2","--enemy1","--enemy2","--enemytx","--ename","--accentDk"]
+    .forEach(k=>rs.removeProperty(k));
+  Object.entries(th.vars||{}).forEach(([k,v])=>rs.setProperty(k,v));
+  /* 部品単位の上書き用に body クラスも 付けかえる */
+  Object.keys(THEMES).forEach(k=>document.body.classList.remove("theme-"+k));
+  document.body.classList.add("theme-"+key);
+  CUR_THEME=key;
+}
+/* せかいを かえる（ホームの下のリンクから。子どもが自分で かえてよい） */
+function openThemePick(){
+  document.getElementById("themePickCur").innerHTML=themeCardsHtml(D.theme,"chooseTheme");
+  show("scTheme");
+}
+function chooseTheme(k){
+  if(!THEMES[k] || !THEMES[k].ready || D.theme===k) return;
+  D.theme=k; saveData();   /* saveData が クラウドにも 送ってくれる */
+  applyTheme(k);
+  sfx("bonus"); confetti(24);
+  document.getElementById("themePickCur").innerHTML=themeCardsHtml(D.theme,"chooseTheme");
+  renderHeader(); renderHome();   /* ホームも 新しいせかいで 描きなおしておく */
+}
+/* ことばの着せ替え：要所だけ 辞書で置きかえる（テーマ語→漢字変換の順。kanjifyDom より先にかける）。
+   問題文・選択肢（.qcard の中）と おうちの人へ（#reportBody）には ぜったいに かけない */
+const THEME_WORDS={
+  cosmo:[
+    ["モンスターを たおして なかまを あつめよう！","うちゅうの モンスターを たおして なかまを あつめよう！"],
+    ["きょうは だいぼうけん だった！","きょうは だいたんさ だった！"],
+    ["ぼうけんに でる","たんさに でる"],
+    ["ぼうけんランク","たんさくしゃランク"],
+    ["⚔️","🚀"],
+  ],
+  yume:[
+    ["モンスターを たおして なかまを あつめよう！","モンスターと なかよくなって なかまを あつめよう！"],
+    ["きょうは だいぼうけん だった！","きょうは すてきな おでかけ だった！"],
+    ["モンスターを たおした！","モンスターと なかよく なれた！"],
+    ["バトルで 1かい かつ","モンスターと 1かい なかよく なる"],
+    ["バトルで 2かい かつ","モンスターと 2かい なかよく なる"],
+    ["ミッション たっせい！","おてつだい たっせい！"],
+    ["きょうの ミッション","きょうの おてつだい"],
+    ["つづけて たたかう！","つづけて あそぶ！"],
+    ["もういちど たたかう","もういちど がんばる"],
+    ["たおれてしまった…","つかれちゃった…"],
+    ["ぜったい たおせる！","ぜったい できるよ！"],
+    ["ぼうけんに でる","おでかけ する"],
+    ["ぼうけんランク","まほうつかいランク"],
+    ["かいも かった！","かいも なかよく なれた！"],
+    ["⚔️","🌷"],
+  ],
+};
+/* もとの文をおぼえておき、テーマを かえたら もどせるようにする（bouken＝もとの文のまま） */
+const THEMIFY_ORIG=new WeakMap();
+function themifyDom(root){
+  if(!root) return;
+  const words=THEME_WORDS[CUR_THEME]||null;
+  const w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode:n=>{
+    let p=n.parentElement;
+    while(p && p!==root.parentElement){
+      if(p.classList && p.classList.contains("qcard")) return NodeFilter.FILTER_REJECT;
+      if(p.id==="reportBody") return NodeFilter.FILTER_REJECT;
+      p=p.parentElement;
+    }
+    return NodeFilter.FILTER_ACCEPT;
+  }});
+  let n;
+  while(n=w.nextNode()){
+    const orig=THEMIFY_ORIG.has(n)?THEMIFY_ORIG.get(n):n.nodeValue;
+    if(!orig || !orig.trim()) continue;
+    let v=orig;
+    if(words){ for(const pair of words){ if(v.indexOf(pair[0])!==-1) v=v.split(pair[0]).join(pair[1]); } }
+    if(v!==n.nodeValue){
+      if(!THEMIFY_ORIG.has(n)) THEMIFY_ORIG.set(n,orig);
+      n.nodeValue=v;
+    }
+  }
+}
+
 /* ============ セーブデータ ============ */
 let KEY=null;   /* startAs() で「いま あそんでいる プレイヤー」の キーが 入る */
 function loadData(){
@@ -1168,7 +1333,7 @@ function loadData(){
 /* クラウドから来たデータも ローカルのデータも 同じ整形を通す */
 function normalizeSave(d){
   d=Object.assign({lv:1, xp:0, total:0, collected:{}, log:[], sessions:[], lastLogin:"", loginStreak:0, loginDays:0, bestStreak:0, missions:null, review:null, sound:true,
-    gems:0, skins:[], mates:[], equip:{head:null, mate:null}, gachaPity:0, pace:"std", checks:[], course:null, courses:[], kmode:"", dayWins:null, grade:3,
+    gems:0, skins:[], mates:[], equip:{head:null, mate:null}, gachaPity:0, pace:"std", checks:[], course:null, courses:[], kmode:"", dayWins:null, grade:3, theme:"bouken",
     trophies:0, trophyIdx:0, trophyOver:0, titles:[], uprog:{}}, d);
   if(typeof d.trophies!=="number") d.trophies=0;
   if(typeof d.trophyIdx!=="number") d.trophyIdx=0;
@@ -1176,6 +1341,7 @@ function normalizeSave(d){
   if(!Array.isArray(d.titles)) d.titles=[];
   if(!Array.isArray(d.rarityBonus)) d.rarityBonus=[];
   if(!GRADE_PACKS[d.grade]) d.grade=3;   /* 学年（引き出し）。引き出しの ない学年・むかしのデータは 3年生あつかい */
+  d.theme=themeOf(d.theme);   /* せかい（テーマ）。不明・じゅんび中の値は ぼうけんに 丸める */
   /* 教科書えらび（教科ごとに出版社）。旧「市セット」（d.book）からの引っ越し：
      kawaguchi → 算数・理科・社会＝東京書籍／hadano・不明 → 標準（啓林・大日本・教出） */
   if(!d.books || typeof d.books!=="object" || Array.isArray(d.books)){
@@ -1277,6 +1443,7 @@ function renderHome(){
     ? `✨ ひみつの しんかが あるらしい…（あと ${evo.wins}かい かつと なにかが おこる！）`
     : `✨ ${evo.ns.emoji}「${evo.ns.name}」まで あと ${evo.wins}かい かてば しんか！`) : "";
   renderMissions();
+  themifyDom(document.getElementById("scHome"));
   kanjifyDom(document.getElementById("scHome"));
 }
 /* つぎの進化まで「あと何回勝てばいいか」のざっくり計算（1勝≒110XPで見つもり・あいぼうレベル基準） */
@@ -1319,7 +1486,7 @@ function renderSubjects(){
     }
     g.appendChild(d);
   });
-  kanjifyDom(g);   /* 教科カードは show() のあとに描かれるので ここで変換 */
+  themifyDom(g); kanjifyDom(g);   /* 教科カードは show() のあとに描かれるので ここで変換 */
 }
 
 /* ============ 範囲えらび ============ */
@@ -2923,6 +3090,7 @@ function winBattle(){
     msg+="<br>📋 ミッション たっせい！ ホームで うけとろう";
   }
   document.getElementById("winMsg").innerHTML=msg;
+  themifyDom(document.getElementById("winScreen"));
   document.getElementById("winScreen").classList.add("show");
   confetti(36);
 }
@@ -2935,6 +3103,7 @@ function maybeDayDone(next){
     document.getElementById("ddEmoji").innerHTML=buddyHTML(null, st);
     document.getElementById("ddMsg").innerHTML=
       "きょうは "+D.dayWins.n+"かいも かった！<br>"+st.name+"も おなかいっぱい だいまんぞく！<br>また あした あそぼうね。";
+    themifyDom(document.getElementById("dayDone"));
     document.getElementById("dayDone").classList.add("show");
     sfx("win"); confetti(40);
     dayDoneNext=next;
@@ -2961,7 +3130,7 @@ function afterWin(){
   if(maybeDayDone("home")) return;
   goHome();
 }
-function loseBattle(){ endSession("lose"); sfx("lose"); document.getElementById("loseScreen").classList.add("show"); }
+function loseBattle(){ endSession("lose"); sfx("lose"); themifyDom(document.getElementById("loseScreen")); document.getElementById("loseScreen").classList.add("show"); }
 function retryBattle(){ document.getElementById("loseScreen").classList.remove("show"); startBattle(curSub, curRange, curMode); }
 function quitBattle(){ if(confirm((chk?"チェック":"バトル")+"を やめて ホームに もどる？")){ battleOver=true; endSession("quit"); chk=null; goHome(); } }
 
@@ -3858,6 +4027,7 @@ function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   const el=document.getElementById(id);
   el.classList.add("active");
+  themifyDom(el);   /* せかい（テーマ）のことばに 着せかえてから… */
   kanjifyDom(el);   /* ならった漢字は 漢字で表示 */
   window.scrollTo(0,0);
 }
