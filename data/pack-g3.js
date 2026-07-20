@@ -155,10 +155,13 @@ const MATH_UNITS_G3=[
       const a=rnd(12,45), b=rnd(12,30);
       return q("1こ "+a+"円の あめを "+b+"こ 買います。ぜんぶで なん円？", a*b, "bun"); }},
   {id:"u20", name:"□を使った式", term:3, s:[3,5], gen(){
-    const v=rnd(1,3);
+    const v=rnd(1,6);
     if(v===1){ const a=rnd(5,40), x=rnd(5,50); return q("□ ＋ "+a+" ＝ "+(x+a)+"。□は？", x, "box"); }
     if(v===2){ const a=rnd(5,40), x=rnd(5,50); return q("□ − "+a+" ＝ "+x+"。□は？", x+a, "box"); }
-    const a=rnd(2,9), x=rnd(2,9); return q("□ × "+a+" ＝ "+(a*x)+"。□は？", x, "box"); },
+    if(v===3){ const a=rnd(20,60), x=rnd(5,a-1); return q(a+" − □ ＝ "+(a-x)+"。□は？", x, "box"); }
+    if(v===4){ const a=rnd(2,9), x=rnd(2,9); return q("□ × "+a+" ＝ "+(a*x)+"。□は？", x, "box"); }
+    if(v===5){ const a=rnd(2,9), x=rnd(2,9); return q("□ ÷ "+a+" ＝ "+x+"。□は？", a*x, "box"); }
+    const x=rnd(2,9), a=x*rnd(2,9); return q(a+" ÷ □ ＝ "+(a/x)+"。□は？", x, "box"); },
     bun(){
       const it=pick(BN_ITEMS), a=rnd(5,15), x=rnd(10,30);
       if(Math.random()<0.5) return q(it+"が なんこか ありました。"+a+"こ 食べたら "+x+"こ のこりました。はじめは なんこ あった？", x+a, "bun");

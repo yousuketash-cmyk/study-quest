@@ -192,6 +192,9 @@
   .qtag{display:inline-block; font-size:12px; font-weight:800; padding:4px 13px; border-radius:999px; color:#fff; margin-bottom:8px;}
   .qtext{font-size:40px; font-weight:800; margin:4px 0 4px; line-height:1.3; word-break:break-word;}
   .qhint{color:#829ab1; font-size:13px; min-height:18px;}
+  /* 図形（面積・角度など）：SVGを 問題文の 上に 出す。縦長でも 高さで あたまうち */
+  .figbox{margin:2px auto 6px; text-align:center;}
+  .figbox svg{max-width:100%; max-height:150px; width:auto; height:auto; display:inline-block;}
 
   .choices{display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-top:14px;}
   .choice{background:#f0f4f8; border:3px solid transparent; border-radius:18px; padding:18px 8px;
@@ -509,6 +512,7 @@
 
     <div class="qcard">
       <span class="qtag" id="qTag">けいさん</span>
+      <div class="figbox" id="figBox" style="display:none;"></div>
       <div class="qtext" id="qText">1 + 1</div>
       <div class="qhint" id="qHint"></div>
       <button class="speakbtn" id="btnSpeak" onclick="speakQ()" style="display:none;">🔊 きく</button>
@@ -1639,6 +1643,29 @@ function unitTaughtQ(units, u){
 
 function q(text,ans,cat){ return {kind:"math", text:text, answer:ans, cat:cat}; }
 function qc(text,answer,choices,cat){ return {kind:"math", ch:true, text:text, answer:answer, choices:shuffle(choices.slice()), cat:cat}; }
+
+/* ===== 図形の絵（SVG）：面積などの問題で 寸法ラベルつきの 図を出す =====
+   qcard（白い カード）の上に出るので こい線・うすい塗り。問題は fig フィールドで 絵を持つ */
+const FIG_INK="#243b53", FIG_FILL="#eaf2fb";
+function figScale(w,h){   /* w:h の比を保ったまま 見やすい ピクセルに（縦長でも 画面に おさまる大きさ） */
+  const maxpx=118, minpx=42, long=Math.max(w,h);
+  const px=v=>Math.max(minpx, Math.round(maxpx*v/long));
+  return {W:px(w), H:px(h)};
+}
+/* 長方形（w=よこ・h=たて。ラベルは 実際の数）。sqLabel=正方形で1辺だけ ラベルしたいとき */
+function figRect(w,h,unit,opt){
+  unit=unit||"cm"; opt=opt||{};
+  const {W,H}=figScale(w,h), pad=30, vbW=W+pad*2+18, vbH=H+pad*2;
+  const x=pad, y=pad;
+  const botLabel = (opt.hideBottom? "" : (opt.wLabel!=null?opt.wLabel:w)+unit);
+  const rightLabel = (opt.hideRight? "" : (opt.hLabel!=null?opt.hLabel:h)+unit);
+  return `<svg viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}" xmlns="http://www.w3.org/2000/svg">`
+    +`<rect x="${x}" y="${y}" width="${W}" height="${H}" fill="${FIG_FILL}" stroke="${FIG_INK}" stroke-width="3" rx="4"/>`
+    +(botLabel?`<text x="${x+W/2}" y="${y+H+22}" font-size="19" font-weight="800" fill="${FIG_INK}" text-anchor="middle" font-family="sans-serif">${botLabel}</text>`:"")
+    +(rightLabel?`<text x="${x+W+7}" y="${y+H/2+6}" font-size="19" font-weight="800" fill="${FIG_INK}" text-anchor="start" font-family="sans-serif">${rightLabel}</text>`:"")
+    +`</svg>`;
+}
+function figSquare(s,unit){ return figRect(s,s,unit,{hideRight:true}); }
 function pick(a){ return a[rnd(0,a.length-1)]; }
 /* 文章問題の登場人物・もの（毎回かわるので あきにくい） */
 const BN_KIDS=["たろうさん","はなさん","けんたさん","みおさん","ゆうきさん"];
@@ -2155,6 +2182,7 @@ function makeQuestionUnique(){
    変換しない：かきとり（手書き）・よみとり長文・もじ（絵あわせ）・復習の出しなおし */
 function oxEligible(q){
   if(!q || q.review) return false;
+  if(q.fig) return false;   /* 図形（絵つき）は 絵が 消えてしまうので ○×に しない */
   if(q.kind==="math") return true;   /* 数字入力も えらぶ式も 可 */
   if(q.kind==="read") return q.cat!=="dokkai" && q.cat!=="moji" && Array.isArray(q.choices) && q.choices.length>=2;
   return false;
@@ -2289,8 +2317,11 @@ function loadQ(){
   const numI=document.getElementById("numInput");
   const cb=document.getElementById("choiceBox");
   const wr=document.getElementById("writeInput");
+  const fig=document.getElementById("figBox");
   numI.style.display="none"; cb.style.display="none"; wr.style.display="none";
   qtext.style.whiteSpace=""; qtext.style.textAlign="";   /* よみとり用の見た目を リセット */
+  if(q.fig){ fig.innerHTML=q.fig; fig.style.display=""; }   /* 図形（面積など）の絵 */
+  else{ fig.style.display="none"; fig.innerHTML=""; }
   if(q.kind==="ox"){
     tag.textContent="○×クイズ"; tag.style.background="var(--purple)";
     const s=q.src;
@@ -2310,7 +2341,7 @@ function loadQ(){
     qhint.textContent="あってる？";
     renderOxChoices();
   }else if(q.kind==="math"){
-    tag.textContent=kanjify((q.cat==="bun")?"ぶんしょう":"けいさん"); tag.style.background="var(--blue)";
+    tag.textContent=kanjify(q.fig?"ずけい":(q.cat==="bun")?"ぶんしょう":(q.cat==="box")?"□の しき":"けいさん"); tag.style.background="var(--blue)";
     const isText=/[ぁ-んァ-ン一-龯□]/.test(q.text);
     qtext.textContent=isText ? kanjify(q.text) : q.text+" = ？";   /* ならった漢字で出題 */
     if(isText && q.text.length>=14) qtext.style.fontSize="26px"; else qtext.style.fontSize="";
