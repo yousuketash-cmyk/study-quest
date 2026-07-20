@@ -200,6 +200,7 @@
   .choice.correct{background:#dcfce7; border-color:var(--good); color:#15803d;}
   .choice.wrong{background:#fee2e2; border-color:var(--bad); color:#b91c1c;}
   .choice.dim{opacity:.45;}
+  .choice.oxbtn{font-size:46px; padding:20px 8px; font-weight:900; line-height:1;}
 
   .answerbox{font-size:38px; font-weight:800; min-height:52px; margin:10px 0 2px; letter-spacing:3px; color:var(--blue);}
   .answerbox .ph{color:#cbd5e1;}
@@ -706,6 +707,7 @@
 <script src="data/subjects-extra.js"></script>
 <script src="data/advanced.js"></script>
 <script src="data/dokkai.js"></script>
+<script src="data/kotoba.js"></script>
 <script src="data/book-kawaguchi.js"></script>
 <script src="data/book-cal-math-tosho.js"></script>
 <script src="data/book-cal-math-gakuto.js"></script>
@@ -1562,13 +1564,14 @@ function openModePicker(sub, range){
      文なしで「けん」だけ見せられても どの漢字か わからない（本人フィードバック）。
      例文がない範囲への内部フォールバックとしてだけ残っている */
   let modes=[
-    {m:"kmix",  emo:"🎲", n:"いろいろ ミックス（おすすめ）", s:"よみ・おくりがな・かきとり・よみとりが ランダムに 出る"},
+    {m:"kmix",  emo:"🎲", n:"いろいろ ミックス（おすすめ）", s:"よみ・おくりがな・かきとり・よみとり・ことばが ランダムに 出る"},
     {m:"bunread",  emo:"📖", n:"ぶんしょうで よみ", s:"文の 中の かんじを よむ"},
     {m:"okuri", emo:"🔡", n:"おくりがな",     s:"「短い？短かい？」ただしいのを えらぶ"},
     {m:"bunwrite", emo:"✏️", n:"ぶんしょうで かきとり", s:"文の （　）の かんじを かく"},
     {m:"trace", emo:"✍️", n:"なぞりがき",     s:"うすい かんじを なぞる（じどう はんてい）"},
   ];
   if(DOKKAI) modes.splice(1,0,{m:"dokkai", emo:"📚", n:"よみとり", s:"みじかい 文しょうを よんで もんだいに こたえる"});
+  if(KOTOBA) modes.splice(DOKKAI?2:1,0,{m:"kotoba", emo:"✏️", n:"ことばのきまり", s:"［　］に はいる ことばを えらぶ"});
   if(MOJI){   /* 1年生：もじあつめ中心。かんじの とき方は ならいはじめてから 出す */
     const kanjiStarted=taughtKanjiMonths().length>0;
     modes=[
@@ -1577,6 +1580,7 @@ function openModePicker(sub, range){
     ];
     /* よみとりは ひらがなだけの おはなし＋「きく」ボタンつき → かんじ前でも あそべる */
     if(DOKKAI) modes.push({m:"dokkai", emo:"📚", n:"よみとり", s:"みじかい おはなしを よんで もんだいに こたえる"});
+    if(KOTOBA) modes.push({m:"kotoba", emo:"✏️", n:"ことばのきまり", s:"「は・を・へ」など ただしい つかい方を えらぶ"});
     if(kanjiStarted){
       modes.push({m:"bunread",  emo:"📖", n:"ぶんしょうで よみ", s:"文の 中の かんじを よむ"});
       modes.push({m:"okuri", emo:"🔡", n:"おくりがな", s:"「大きい？大い？」ただしいのを えらぶ"});
@@ -1857,35 +1861,35 @@ function fracQ(text, n, d, cat){
 const GRADE_PACKS={
   1:{label:"1ねんせい",
      mathUnits:MATH_UNITS_G1, mathAdv:MATH_ADV_G1, kanji:KANJI_G1, kanjiAlt:KANJI_ALT_G1, sents:SENTS_G1,
-     kanjiMonthOrder:KANJI_MONTH_ORDER_G1, preKanji:"", moji:MOJI_G1, dokkai:DOKKAI_G1},
+     kanjiMonthOrder:KANJI_MONTH_ORDER_G1, preKanji:"", moji:MOJI_G1, dokkai:DOKKAI_G1, kotoba:KOTOBA_G1},
   /* 2年は りか・しゃかい・えいごの授業がない学年（生活科）＝3教科はじゅんびちゅうのまま */
   2:{label:"2ねんせい",
      mathUnits:MATH_UNITS_G2, mathAdv:MATH_ADV_G2, kanji:KANJI_G2, kanjiAlt:KANJI_ALT_G2, sents:SENTS_G2,
-     kanjiMonthOrder:KANJI_MONTH_ORDER_G2, preKanji:G1_KANJI, dokkai:DOKKAI_G2},
+     kanjiMonthOrder:KANJI_MONTH_ORDER_G2, preKanji:G1_KANJI, dokkai:DOKKAI_G2, kotoba:KOTOBA_G2},
   3:{label:"3ねんせい",
      mathUnits:MATH_UNITS_G3, mathAdv:MATH_ADV_G3, kanji:KANJI_G3, kanjiAlt:KANJI_ALT_G3, sents:SENTS_G3,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G3, preKanji:G1_KANJI+G2_KANJI,
-     socUnits:SOC_UNITS_G3, sciUnits:SCI_UNITS_G3, engUnits:ENG_UNITS_G3, dokkai:DOKKAI_G3},
+     socUnits:SOC_UNITS_G3, sciUnits:SCI_UNITS_G3, engUnits:ENG_UNITS_G3, dokkai:DOKKAI_G3, kotoba:KOTOBA_G3},
   4:{label:"4ねんせい",
      mathUnits:MATH_UNITS_G4, mathAdv:MATH_ADV_G4, kanji:KANJI_G4, kanjiAlt:KANJI_ALT_G4, sents:SENTS_G4,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G4, preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join(""),
-     socUnits:SOC_UNITS_G4, sciUnits:SCI_UNITS_G4, engUnits:ENG_UNITS_G4, dokkai:DOKKAI_G4},
+     socUnits:SOC_UNITS_G4, sciUnits:SCI_UNITS_G4, engUnits:ENG_UNITS_G4, dokkai:DOKKAI_G4, kotoba:KOTOBA_G4},
   /* 5年の preKanji は 1〜4年分（4年パックの配当を含む） */
   5:{label:"5ねんせい",
      mathUnits:MATH_UNITS_G5, mathAdv:MATH_ADV_G5, kanji:KANJI_G5, kanjiAlt:KANJI_ALT_G5, sents:SENTS_G5,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G5,
      preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join("")+KANJI_G4.map(k=>k.w).join(""),
-     socUnits:SOC_UNITS_G5, sciUnits:SCI_UNITS_G5, engUnits:ENG_UNITS_G5, dokkai:DOKKAI_G5},
+     socUnits:SOC_UNITS_G5, sciUnits:SCI_UNITS_G5, engUnits:ENG_UNITS_G5, dokkai:DOKKAI_G5, kotoba:KOTOBA_G5},
   /* 6年の preKanji は 1〜3年分まで（4・5年配当の変換辞書語は少ないので実用上OK） */
   6:{label:"6ねんせい",
      mathUnits:MATH_UNITS_G6, mathAdv:MATH_ADV_G6, kanji:KANJI_G6, kanjiAlt:KANJI_ALT_G6, sents:SENTS_G6,
      kanjiMonthOrder:KANJI_MONTH_ORDER_G6, preKanji:G1_KANJI+G2_KANJI+KANJI_G3.map(k=>k.w).join(""),
-     socUnits:SOC_UNITS_G6, sciUnits:SCI_UNITS_G6, engUnits:ENG_UNITS_G6, dokkai:DOKKAI_G6},
+     socUnits:SOC_UNITS_G6, sciUnits:SCI_UNITS_G6, engUnits:ENG_UNITS_G6, dokkai:DOKKAI_G6, kotoba:KOTOBA_G6},
 };
 /* いま あそんでいる子の学年の中身。applyGradePack() で引き出しごと入れ替える */
 let MATH_UNITS=MATH_UNITS_G3, MATH_ADV=MATH_ADV_G3, KANJI=KANJI_G3, KANJI_ALT=KANJI_ALT_G3, SENTS=SENTS_G3,
     KANJI_MONTH_ORDER=KANJI_MONTH_ORDER_G3, PRE_KANJI=G1_KANJI+G2_KANJI, MOJI=null,
-    SOC_UNITS=null, SCI_UNITS=null, ENG_UNITS=null, DOKKAI=null;
+    SOC_UNITS=null, SCI_UNITS=null, ENG_UNITS=null, DOKKAI=null, KOTOBA=null;
 /* ===== 教科書えらび（教科ごとに出版社を選ぶ。spec/教科書えらび-設計メモ.md が単一の真実） ===== */
 const BOOK_PUBS={
   math:[["keirin","啓林館"],["tosho","東京書籍"],["gakuto","学校図書"],["kyoshup","教育出版"],["dainippon","大日本図書"],["nichibun","日本文教出版"]],
@@ -1930,6 +1934,7 @@ function applyGradePack(){
   /* しゃかい・りか・えいごの引き出し（データのある学年だけ 教科が解放される） */
   SOC_UNITS=p.socUnits||null; SCI_UNITS=p.sciUnits||null; ENG_UNITS=p.engUnits||null;
   DOKKAI=(p.dokkai&&p.dokkai.length)?p.dokkai:null;   /* よみとり（短文読解） */
+  KOTOBA=(p.kotoba&&p.kotoba.length)?p.kotoba:null;   /* ことばのきまり（あなうめ） */
   /* 教科書えらび：選んだ出版社の単元カレンダーを学年の引き出しの上から重ねる */
   const g=D&&D.grade, bs=booksOf(D);
   MATH_UNITS=resolveBookUnits("math", bs.math, g, MATH_UNITS);
@@ -2092,6 +2097,17 @@ function makeDokkai(){
     hint:"", answer:qa.a, choices:shuffle([qa.a].concat(qa.w)), adv:!!qa.adv,
     speech:item.p+"。 もんだい。 "+qa.t};
 }
+/* ことばのきまり（あなうめ）：KOTOBA（学年別データ）から出題 */
+function makeKotoba(){
+  const it=KOTOBA[Math.floor(Math.random()*KOTOBA.length)];
+  const blank=it.t.indexOf("［　］")!==-1;
+  /* よみあげ：空欄は「なになに」と読む（1年生の「きく」ボタン対応。かっこ書きの補足は読まない） */
+  const speech=it.t.replace(/［　］/g,"、なになに、").replace(/（[^）]*）/g,"")
+    +(blank?" なになに に はいるのは どれかな？":"");
+  return {kind:"read", cat:"kotoba", qk:"kt:"+it.t, text:it.t,
+    hint: blank ? "［　］に はいるのは どれ？" : "ただしい ものを えらぼう",
+    answer:it.a, choices:shuffle([it.a].concat(it.w)), speech:speech};
+}
 function makeQuestion(){
   if(curSub.id==="math") return makeMath(curRange.id);
   if(curSub.id==="english") return makeEnglish(curRange.id);
@@ -2099,18 +2115,23 @@ function makeQuestion(){
   let mode=curMode;
   if(mode==="moji") return makeMoji();
   if(mode==="dokkai" && DOKKAI) return makeDokkai();
-  /* 1年生：かんじを まだ ならって いない あいだ（〜夏）は もじあつめ＋ときどき よみとり */
-  if(MOJI && !taughtKanjiMonths().length) return (DOKKAI && Math.random()<0.25) ? makeDokkai() : makeMoji();
+  if(mode==="kotoba" && KOTOBA) return makeKotoba();
+  /* 1年生：かんじを まだ ならって いない あいだ（〜夏）は もじあつめ＋ときどき よみとり・ことば */
+  if(MOJI && !taughtKanjiMonths().length){
+    if(KOTOBA && Math.random()<0.2) return makeKotoba();
+    return (DOKKAI && Math.random()<0.25) ? makeDokkai() : makeMoji();
+  }
   /* 1年生のミックスは 半分 もじあつめ */
   if(MOJI && mode==="kmix" && Math.random()<0.5) return makeMoji();
   /* ミックス：とき方から ランダム（なぞりがきは まぜない）。
-     こくごの「ちょうし」が🔥なら 書く系多め・🌱なら よみ多め。よみとりも まざる */
+     こくごの「ちょうし」が🔥なら 書く系多め・🌱なら よみ多め。よみとり・ことばのきまりも まざる */
   if(mode==="kmix"){
     const form=subjectForm("kanji");
     if(form==="hot") mode=pick(["bunread","okuri","okuri","bunwrite","bunwrite"]);
     else if(form==="cool") mode=pick(["bunread","bunread","bunread","okuri","bunwrite"]);
     else mode=pick(["bunread","okuri","bunwrite"]);
     if(DOKKAI && Math.random()<(form==="hot"?0.3:0.2)) mode="dokkai";
+    else if(KOTOBA && Math.random()<0.15) return makeKotoba();
     if(mode==="dokkai") return makeDokkai();
   }
   if(mode==="trace" || mode==="write") return makeKanjiWrite(curRange.id, mode);
@@ -2127,6 +2148,48 @@ function makeQuestionUnique(){
   while(asked && asked.has(qKey(qq)) && guard++<25){ qq=makeQuestion(); }
   if(asked) asked.add(qKey(qq));
   return qq;
+}
+
+/* ===== ○×クイズ：できあがった問題を「こたえの ていじ→あってる？」に変換するスパイス =====
+   データ追加ゼロで全教科に新形式が出る。バトル専用（ちからだめしは chk 経路のため通らない）。
+   変換しない：かきとり（手書き）・よみとり長文・もじ（絵あわせ）・復習の出しなおし */
+function oxEligible(q){
+  if(!q || q.review) return false;
+  if(q.kind==="math") return true;   /* 数字入力も えらぶ式も 可 */
+  if(q.kind==="read") return q.cat!=="dokkai" && q.cat!=="moji" && Array.isArray(q.choices) && q.choices.length>=2;
+  return false;
+}
+function oxWrongNumber(a){
+  if(typeof a!=="number") return a;
+  const d=pick([1,1,2,3,10]);
+  let v=Math.random()<0.5 ? a+d : a-d;
+  if(v<0 || v===a) v=a+d;
+  return v;
+}
+function oxify(q){
+  const truth=Math.random()<0.5;
+  let prop;
+  if(q.kind==="math" && !q.ch){
+    prop = truth ? q.answer : oxWrongNumber(q.answer);
+    if(!truth && prop===q.answer) return q;   /* 保険：ハズレが作れなければ そのまま */
+  }else{
+    const wrongs=q.choices.filter(c=>c!==q.answer);
+    if(!wrongs.length) return q;
+    prop = truth ? q.answer : wrongs[Math.floor(Math.random()*wrongs.length)];
+  }
+  return {kind:"ox", src:q, prop:prop, real:q.answer, truth:truth,
+    answer: truth?"○":"×", cat:q.cat, unit:q.unit, adv:q.adv, qk:qKey(q)};
+}
+function maybeOx(q){ return (oxEligible(q) && Math.random()<0.22) ? oxify(q) : q; }
+function renderOxChoices(){
+  const cb=document.getElementById("choiceBox");
+  cb.style.display="grid"; cb.innerHTML="";
+  [["○","#16a34a"],["×","#dc2626"]].forEach(p=>{
+    const b=document.createElement("button");
+    b.className="choice oxbtn"; b.textContent=p[0]; b.style.color=p[1];
+    b.onclick=()=>pickChoice(b,p[0]);
+    cb.appendChild(b);
+  });
 }
 
 /* ============ バトル ============ */
@@ -2214,7 +2277,7 @@ function speakQ(){
 }
 function loadQ(){
   typed=""; locked=false; strokeCount=0; curKanji=null;
-  const q = chk ? chk.qs[chk.i] : makeQuestionUnique();
+  const q = chk ? chk.qs[chk.i] : maybeOx(makeQuestionUnique());
   curQ=q; curAns=q.answer; curCat=q.cat; qStart=Date.now();
   if(chk){
     document.getElementById("hearts").textContent=(chk.i+1)+" / "+chk.qs.length;
@@ -2228,7 +2291,25 @@ function loadQ(){
   const wr=document.getElementById("writeInput");
   numI.style.display="none"; cb.style.display="none"; wr.style.display="none";
   qtext.style.whiteSpace=""; qtext.style.textAlign="";   /* よみとり用の見た目を リセット */
-  if(q.kind==="math"){
+  if(q.kind==="ox"){
+    tag.textContent="○×クイズ"; tag.style.background="var(--purple)";
+    const s=q.src;
+    let body;
+    if(s.kind==="math"){
+      const isText=/[ぁ-んァ-ン一-龯□]/.test(s.text);
+      body=(isText ? kanjify(s.text) : s.text);
+      setSpeak(mathSpeech(s.text)+"。こたえは "+q.prop+" で あってるかな？");
+    }else{
+      body=s.text;
+      setSpeak("");
+    }
+    const qt=body+"\nこたえは 「"+q.prop+"」";
+    qtext.style.whiteSpace="pre-line";
+    qtext.style.fontSize=(qt.length>=60?"19px":qt.length>=26?"22px":"28px");
+    qtext.textContent=qt;
+    qhint.textContent="あってる？";
+    renderOxChoices();
+  }else if(q.kind==="math"){
     tag.textContent=kanjify((q.cat==="bun")?"ぶんしょう":"けいさん"); tag.style.background="var(--blue)";
     const isText=/[ぁ-んァ-ン一-龯□]/.test(q.text);
     qtext.textContent=isText ? kanjify(q.text) : q.text+" = ？";   /* ならった漢字で出題 */
@@ -2247,6 +2328,7 @@ function loadQ(){
       qtext.style.fontSize=(q.text.length>140?"19px":"22px");
       qtext.style.whiteSpace="pre-line"; qtext.style.textAlign="left";
     }
+    else if(q.cat==="kotoba"){ tag.textContent="ことば"; tag.style.background="var(--purple)"; qtext.style.fontSize=(q.text.length>=18?"22px":"26px"); }
     else if(q.cat==="moji"){ tag.textContent="もじ"; qtext.style.fontSize=""; }
     else if(q.sent){ tag.textContent="ぶんしょう"; qtext.style.fontSize="24px"; }
     else if(q.cat==="okuri"){ tag.textContent="おくりがな"; qtext.style.fontSize="34px"; }
@@ -2276,6 +2358,10 @@ function pickChoice(btn,val){
     else if(b===btn) b.classList.add("wrong");
     else b.classList.add("dim");
   });
+  /* ○×で「×が正解」のときは ほんとうの答えも 見せる（まなびを つなぐ） */
+  if(curQ && curQ.kind==="ox" && !curQ.truth){
+    document.getElementById("qHint").textContent="ほんとうの こたえ：「"+curQ.real+"」";
+  }
   setTimeout(()=>judge(ok,curAns), ok?450:1000);
 }
 
@@ -2473,8 +2559,10 @@ function maybeAssist(){
 /* ふくしゅうプール（まちがえた問題を ためて あとで 出しなおす） */
 function addReviewFromQ(){
   if(!curQ) return;
+  if(curQ.kind==="ox") return;    /* ○×クイズは 復習プールに入れない（形は かりもの のため） */
   if(curQ.cat==="moji") return;   /* もじあつめは 復習プールに入れない（かんじ扱いになってしまうため） */
-  if(curQ.quiz) return;           /* しゃかい・りか・えいごも 同様（復習プールは 算数・かんじ用の構造） */
+  if(curQ.cat==="kotoba") return; /* ことばのきまりも 同様（復習プールは 算数・かんじ用の構造） */
+  if(curQ.quiz) return;           /* しゃかい・りか・えいごも 同様 */
   if(curQ.kind==="math" && curQ.ch) return;   /* えらぶ式の問題は 復習プールに入れない */
   if(curQ.kind==="math"){
     const pool=D.review.math;
@@ -3420,7 +3508,7 @@ const CAT_LABEL={add:"たしざん", sub:"ひきざん", mul:"かけざん", div
   wariai:"わりあい", sokudo:"速さ", seisu:"整数の せいしつ",
   seiji:"政治とくらし", rekishi:"歴史", kokusai:"世界の中の日本",
   seimei:"生命（体・植物）", busshitsu:"もの・水よう液", chikyu:"地球（月・大地）", energy:"エネルギー（てこ・電気）",
-  eigo:"えいご", chiiki:"まちと市", kurashi:"はたらく人", anzen:"安全を守る", dokkai:"よみとり"};
+  eigo:"えいご", chiiki:"まちと市", kurashi:"はたらく人", anzen:"安全を守る", dokkai:"よみとり", kotoba:"ことばのきまり"};
 const HOUR_BUCKETS=[
   {key:"あさ",   lo:5,  hi:10, label:"あさ (5-10時)"},
   {key:"ひる",   lo:11, hi:14, label:"ひる (11-14時)"},
