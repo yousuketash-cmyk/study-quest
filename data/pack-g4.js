@@ -105,10 +105,13 @@ const MATH_UNITS_G4=[
       return qc(a+"円の パンと "+b+"円の ジュース。がい数で 見積もると あわせて およそ 何円？", "およそ "+sum+"円",
         ["およそ "+sum+"円","およそ "+(sum-100)+"円","およそ "+(sum+100)+"円","およそ "+(sum+200)+"円"], "bun"); }},
   {id:"g4u8", name:"計算のきまり", term:2, s:[9,25], gen(){
-    const v=rnd(1,4);
+    const v=rnd(1,5);
     if(v===1){ const a=rnd(2,9), b=rnd(2,9), c=rnd(2,9); return q(a+" ＋ "+b+" × "+c, a+b*c, "shiki"); }
     if(v===2){ const a=rnd(2,9), b=rnd(2,9), c=rnd(2,9); return q("("+a+" ＋ "+b+") × "+c, (a+b)*c, "shiki"); }
     if(v===3){ const a=rnd(3,9), b=rnd(2,9), c=rnd(2,a-1); return q(a*b+" − "+c+" × "+b, (a-c)*b, "shiki"); }
+    if(v===4){   /* □の かけ算・わり算 */
+      if(Math.random()<0.5){ const a=rnd(3,12), x=rnd(3,12); return q("□ × "+a+" ＝ "+(a*x)+"。□は？", x, "box"); }
+      const x=rnd(2,9), a=x*rnd(3,9); return q(a+" ÷ □ ＝ "+(a/x)+"。□は？", x, "box"); }
     const a=rnd(2,9), b=rnd(2,9), c=rnd(2,9); return q(a+" × "+c+" ＋ "+b+" × "+c, (a+b)*c, "shiki"); },
     bun(){
       const a=rnd(5,9)*10, b=rnd(2,5), c=rnd(1,4)*100;
@@ -151,14 +154,28 @@ const MATH_UNITS_G4=[
       const a=rnd(2,4), x=rnd(3,8);
       return q("正方形の 1辺の 長さ × 4 ＝ まわりの 長さ。1辺が "+(a*x)+"cmの とき、まわりの 長さは 何cm？", a*x*4, "bun"); }},
   {id:"g4u12", name:"面積", term:2, s:[12,10], gen(){
-    const v=rnd(1,4);
-    if(v===1){ const a=rnd(3,12), b=rnd(3,12); return q("たて "+a+"cm・よこ "+b+"cmの 長方形の 面積は 何cm²？", a*b, "zu"); }
-    if(v===2){ const a=rnd(3,12); return q("1辺 "+a+"cmの 正方形の 面積は 何cm²？", a*a, "zu"); }
-    if(v===3) return qc("1m²は 何cm²？", "10000 cm²", ["10000 cm²","100 cm²","1000 cm²","100000 cm²"], "tani");
-    const a=rnd(3,9), b=rnd(3,9); return q("面積が "+(a*b)+"cm²の 長方形。たてが "+a+"cmの とき、よこは 何cm？", b, "zu"); },
+    const v=rnd(1,100);
+    if(v<=40){   /* 長方形の面積（絵つき）。ハズレは たし算・まわりの ながさ など 典型の まちがい */
+      let w=rnd(3,12), h=rnd(3,12); if(w===h) w=(w%12)+1;
+      const c=w*h, set=new Set([c, w+h, 2*(w+h), c+w, (w+1)*h]); set.delete(c);
+      const opts=[String(c)]; for(const x of set){ if(opts.length>=4) break; if(x>0 && x!==c) opts.push(String(x)); }
+      let g=0; while(opts.length<4 && g++<20){ const x=c+rnd(1,9); if(!opts.includes(String(x))) opts.push(String(x)); }
+      const qq=qc("この 長方形の 面積は 何cm²？", String(c), opts, "zu"); qq.fig=figRect(w,h,"cm"); return qq;
+    }
+    if(v<=65){   /* 正方形の面積（絵つき） */
+      const s=rnd(3,12), c=s*s, set=new Set([c, s*4, s+s, c+s]); set.delete(c);
+      const opts=[String(c)]; for(const x of set){ if(opts.length>=4) break; if(x>0 && x!==c) opts.push(String(x)); }
+      let g=0; while(opts.length<4 && g++<20){ const x=c+rnd(1,9); if(!opts.includes(String(x))) opts.push(String(x)); }
+      const qq=qc("この 正方形の 面積は 何cm²？", String(c), opts, "zu"); qq.fig=figSquare(s,"cm"); return qq;
+    }
+    if(v<=85){   /* 逆算：面積と たて から よこ（？）を もとめる（絵つき・よこを ？で ラベル） */
+      const w=rnd(3,10), h=rnd(3,9), qq=q("面積が "+(w*h)+"cm²の 長方形。たてが "+h+"cmの とき、よこ（？）は 何cm？", w, "zu");
+      qq.fig=figRect(w,h,"cm",{wLabel:"？"}); return qq;
+    }
+    return qc("1m²は 何cm²？", "10000", ["10000","100","1000","100000"], "tani"); },
     bun(){
-      const a=rnd(3,9), b=rnd(3,9);
-      return q("たて "+a+"m・よこ "+b+"mの 長方形の 花だんの 面積は 何m²？", a*b, "bun"); }},
+      const a=rnd(3,9), b=rnd(3,9), qq=q("たて "+a+"m・よこ "+b+"mの 長方形の 花だんの 面積は 何m²？", a*b, "bun");
+      qq.fig=figRect(b,a,"m"); return qq; }},
   {id:"g4u13", name:"小数×整数・小数÷整数", term:3, s:[1,15], gen(){
     if(Math.random()<0.5){
       let A=rnd(12,98); const b=rnd(2,8);

@@ -63,6 +63,11 @@ const MATH_UNITS_G1=[
       const right=(a>b)?"あかい テープ":"あおい テープ";
       return qc("あかい テープは ますめ "+a+"こぶん、あおい テープは "+b+"こぶん。ながいのは どっち？", right, ["あかい テープ","あおい テープ"], "kurabe"); }
     return q("ますめ "+Math.max(a,b)+"こぶんと "+Math.min(a,b)+"こぶん。ちがいは ますめ なんこぶん？", Math.abs(a-b), "kurabe"); }},
+  {id:"g1u11a", name:"□の たしざん・ひきざん", term:2, s:[11,10], gen(){
+    const v=rnd(1,3);
+    if(v===1){ const x=rnd(1,9), a=rnd(1,9); return q("□ ＋ "+a+" ＝ "+(x+a)+"。□は いくつ？", x, "box"); }
+    if(v===2){ const a=rnd(1,9), x=rnd(1,9); return q(a+" ＋ □ ＝ "+(a+x)+"。□は いくつ？", x, "box"); }
+    const a=rnd(5,10), x=rnd(1,a-1); return q(a+" − □ ＝ "+(a-x)+"。□は いくつ？", x, "box"); }},
   {id:"g1u11", name:"たしざん(2) くりあがり", term:2, s:[11,1], gen(){
     const a=rnd(5,9), b=rnd(11-a,9); return q(a+" + "+b, a+b, "add"); },
     bun(){

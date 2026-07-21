@@ -21,10 +21,13 @@ const MATH_UNITS_G2=[
       const a=rnd(3,7); let b=rnd(2,6); while(b===a) b=rnd(2,6);
       return q(kinds[0][0]+"が すきな 人は "+a+"人、"+kinds[1][0]+"が すきな 人は "+b+"人でした。ちがいは なん人？", Math.abs(a-b), "bun"); }},
   {id:"g2u2", name:"たし算と ひき算（あんざん）", term:1, s:[4,15], gen(){
-    const v=rnd(1,4);
+    const v=rnd(1,5);
     if(v===1){ const a=rnd(1,8)*10+rnd(2,9), b=rnd(11-(a%10),9); return q(a+" + "+b, a+b, "add"); }
     if(v===2){ const a=rnd(2,9)*10, b=rnd(1,9); return q(a+" − "+b, a-b, "sub"); }
     if(v===3){ const a=rnd(1,5)*10+rnd(1,9), b=rnd(1,4)*10; return q(a+" + "+b, a+b, "add"); }
+    if(v===4){   /* □の たし算・ひき算 */
+      if(Math.random()<0.5){ const a=rnd(11,40), x=rnd(5,40); return q("□ ＋ "+a+" ＝ "+(x+a)+"。□は？", x, "box"); }
+      const a=rnd(30,80), x=rnd(5,a-1); return q(a+" − □ ＝ "+(a-x)+"。□は？", x, "box"); }
     const a=rnd(5,9)*10+rnd(1,9), b=rnd(1,4)*10; return q(a+" − "+b, a-b, "sub"); },
     bun(){
       const a=rnd(2,6)*10+rnd(2,8), b=rnd(1,9);
